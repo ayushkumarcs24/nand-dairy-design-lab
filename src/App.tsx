@@ -17,6 +17,8 @@ import FarmerOrders from "./pages/farmer/FarmerOrders";
 import FarmerProducts from "./pages/farmer/FarmerProducts";
 import FarmerCustomers from "./pages/farmer/FarmerCustomers";
 import FarmerAnalytics from "./pages/farmer/FarmerAnalytics";
+import FarmerDailyEntry from "./pages/farmer/FarmerDailyEntry";
+import FarmerStatements from "./pages/farmer/FarmerStatements";
 import SamitiDashboard from "./pages/samiti/SamitiDashboard";
 
 const queryClient = new QueryClient();
@@ -38,6 +40,8 @@ const App = () => (
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
           <Route path="/samiti/dashboard" element={<SamitiDashboard />} />
           <Route path="/farmer/dashboard" element={<FarmerDashboard />} />
+          <Route path="/farmer/daily-entry" element={<FarmerDailyEntry />} />
+          <Route path="/farmer/statements" element={<FarmerStatements />} />
           <Route path="/farmer-orders" element={<FarmerOrders />} />
           <Route path="/farmer-products" element={<FarmerProducts />} />
           <Route path="/farmer-customers" element={<FarmerCustomers />} />
