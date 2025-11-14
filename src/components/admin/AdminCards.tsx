@@ -1,19 +1,11 @@
 import { DollarSign, Users, Package, ArrowUp, ArrowDown } from "lucide-react";
 import { motion } from "framer-motion";
 
-const cardVariants = {
-  hover: {
-    y: -10,
-    boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
-    transition: { duration: 0.4, ease: "easeOut" },
-  },
-};
-
 const StatCard = ({ title, value, icon, trend, trendType }) => (
   <motion.div
     className="glass-card rounded-2xl p-6 flex flex-col justify-between transform-gpu"
-    variants={cardVariants}
-    whileHover="hover"
+    whileHover={{ y: -10, boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)" }}
+    transition={{ duration: 0.4 }}
   >
     <div className="flex items-center justify-between">
       <h3 className="text-lg font-medium text-muted-foreground">{title}</h3>
