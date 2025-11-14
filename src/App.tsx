@@ -17,7 +17,6 @@ import FarmerOrders from "./pages/farmer/FarmerOrders";
 import FarmerProducts from "./pages/farmer/FarmerProducts";
 import FarmerCustomers from "./pages/farmer/FarmerCustomers";
 import FarmerAnalytics from "./pages/farmer/FarmerAnalytics";
-import SamitiDashboard from "./pages/samiti/SamitiDashboard";
 
 const queryClient = new QueryClient();
 
@@ -41,7 +40,6 @@ const App = () => (
           <Route path="/farmer-products" element={<FarmerProducts />} />
           <Route path="/farmer-customers" element={<FarmerCustomers />} />
           <Route path="/farmer-analytics" element={<FarmerAnalytics />} />
-          <Route path="/samiti/dashboard" element={<SamitiDashboard />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTe */}
           <Route path="*" element={<NotFound />} />
         </Routes>
