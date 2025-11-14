@@ -15,6 +15,8 @@ const SamitiLogin = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     console.log("Samiti login attempt:", { samitiId, password });
+    // Redirect to Samiti dashboard on successful login
+    window.location.href = "/samiti/dashboard";
   };
 
   return (
