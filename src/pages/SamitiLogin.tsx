@@ -5,9 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { motion } from 'framer-motion';
 import { ArrowLeft } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 const SamitiLogin = () => {
+  const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [samitiId, setSamitiId] = useState("");
   const [password, setPassword] = useState("");
@@ -16,7 +17,7 @@ const SamitiLogin = () => {
     e.preventDefault();
     console.log("Samiti login attempt:", { samitiId, password });
     // Redirect to Samiti dashboard on successful login
-    window.location.href = "/samiti/dashboard";
+    navigate("/samiti/dashboard");
   };
 
   return (
