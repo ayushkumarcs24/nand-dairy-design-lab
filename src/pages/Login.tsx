@@ -12,16 +12,39 @@ const loginRoles = [
   { name: 'Logistics', path: '/logistics-login' },
 ];
 
+const cardVariants = {
+  initial: { y: 50, opacity: 0 },
+  animate: (i: number) => ({
+    y: 0,
+    opacity: 1,
+    transition: {
+      delay: i * 0.1,
+      duration: 0.5,
+      ease: 'easeOut',
+    },
+  }),
+  hover: {
+    y: -8,
+    scale: 1.05,
+    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+    transition: {
+      duration: 0.3,
+      ease: 'easeInOut',
+    },
+  },
+};
+
 const LoginSelectionCard = ({ role, index }: { role: { name: string; path: string }, index: number }) => {
   const navigate = useNavigate();
 
   return (
     <motion.div
       className="glass-card rounded-3xl p-6 md:p-8 flex flex-col items-center justify-center text-center space-y-4 cursor-pointer"
-      initial={{ y: 50, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      transition={{ delay: index * 0.1, duration: 0.5 }}
-      whileHover={{ y: -8, scale: 1.05, boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' }}
+      variants={cardVariants}
+      initial="initial"
+      animate="animate"
+      whileHover="hover"
+      custom={index}
       onClick={() => navigate(role.path)}
     >
       <h3 className="text-2xl font-semibold text-foreground">{role.name}</h3>

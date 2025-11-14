@@ -5,10 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { motion } from 'framer-motion';
 import { ArrowLeft } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 
 const DistributorLogin = () => {
-  const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -18,7 +17,7 @@ const DistributorLogin = () => {
     // Handle login logic here
     console.log("Login attempt:", { email, password });
     // Redirect to distributor dashboard on successful login
-    navigate("/distributor/dashboard");
+    window.location.href = "/distributor/dashboard";
   };
 
   return (

@@ -2,6 +2,14 @@ import { IndianRupee, Droplets, Gauge } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 
+const cardVariants = {
+  hover: {
+    y: -6,
+    boxShadow: "0 20px 40px -16px rgba(15, 23, 42, 0.2)",
+    transition: { duration: 0.3, ease: "easeOut" },
+  },
+};
+
 const StatCard = ({
   title,
   value,
@@ -19,8 +27,8 @@ const StatCard = ({
 }) => (
   <motion.div
     className="flex flex-col justify-between rounded-2xl bg-white px-5 py-4 shadow-sm ring-1 ring-slate-100"
-    whileHover={{ y: -6, boxShadow: "0 20px 40px -16px rgba(15, 23, 42, 0.2)" }}
-    transition={{ duration: 0.3 }}
+    variants={cardVariants}
+    whileHover="hover"
   >
     <div className="flex items-start justify-between gap-3">
       <div>
