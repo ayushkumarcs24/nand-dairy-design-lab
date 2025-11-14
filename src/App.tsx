@@ -7,6 +7,15 @@ import Index from "./pages/Index";
 import AdminLogin from "./pages/AdminLogin";
 import SamitiLogin from "./pages/SamitiLogin";
 import NotFound from "./pages/NotFound";
+import Login from "./pages/Login";
+import FarmerLogin from "./pages/FarmerLogin";
+import DistributorLogin from "./pages/DistributorLogin";
+import LogisticsLogin from "./pages/LogisticsLogin";
+import FarmerDashboard from "./pages/FarmerDashboard";
+import FarmerOrders from "./pages/farmer/FarmerOrders";
+import FarmerProducts from "./pages/farmer/FarmerProducts";
+import FarmerCustomers from "./pages/farmer/FarmerCustomers";
+import FarmerAnalytics from "./pages/farmer/FarmerAnalytics";
 
 const queryClient = new QueryClient();
 
@@ -17,9 +26,18 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Index />} />
+          <Route path="/" element={<Login />} />
           <Route path="/admin-login" element={<AdminLogin />} />
           <Route path="/samiti-login" element={<SamitiLogin />} />
+          <Route path="/farmer-login" element={<FarmerLogin />} />
+          <Route path="/distributor-login" element={<DistributorLogin />} />
+          <Route path="/logistics-login" element={<LogisticsLogin />} />
+          <Route path="/index" element={<Index />} />
+          <Route path="/farmer/dashboard" element={<FarmerDashboard />} />
+          <Route path="/farmer-orders" element={<FarmerOrders />} />
+          <Route path="/farmer-products" element={<FarmerProducts />} />
+          <Route path="/farmer-customers" element={<FarmerCustomers />} />
+          <Route path="/farmer-analytics" element={<FarmerAnalytics />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

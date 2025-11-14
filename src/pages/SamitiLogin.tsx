@@ -3,6 +3,9 @@ import { Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { motion } from 'framer-motion';
+import { ArrowLeft } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const SamitiLogin = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -15,40 +18,32 @@ const SamitiLogin = () => {
   };
 
   return (
-    <div className="min-h-screen w-full relative overflow-hidden bg-gradient-to-br from-[hsl(42,45%,94%)] via-[hsl(40,35%,88%)] to-[hsl(42,45%,90%)]">
-      {/* Decorative background circles */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-[-10%] left-[-5%] w-[600px] h-[600px] rounded-full bg-white/20 blur-3xl animate-float" />
-        <div className="absolute bottom-[-15%] right-[-10%] w-[800px] h-[800px] rounded-full bg-[hsl(42,78%,60%)]/10 blur-3xl" 
-             style={{ animationDelay: "1s" }} />
-        <div className="absolute top-[40%] right-[20%] w-[400px] h-[400px] rounded-full bg-white/15 blur-3xl animate-float"
-             style={{ animationDelay: "2s" }} />
-      </div>
+    <div className="relative min-h-screen w-full bg-gradient-to-br from-blue-100 via-white to-blue-50 text-foreground overflow-hidden">
+      <div className="absolute inset-0 -z-10 h-full w-full bg-white bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px]"></div>
+      <div className="absolute top-0 bottom-0 left-0 right-0 -z-10 bg-[radial-gradient(circle_500px_at_50%_200px,#C9EBFF,transparent)]"></div>
 
-      {/* Main content */}
-      <div className="relative z-10 flex items-center justify-center min-h-screen p-4">
-        <div className="w-full max-w-md animate-scale-in">
-          {/* Logo */}
-          <div className="text-center mb-8 animate-fade-in">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white/60 backdrop-blur-sm border border-white/40 shadow-lg mb-4">
-              <span className="text-xl font-bold text-foreground">Nand</span>
+      <div className="relative z-10 flex flex-col items-center justify-center min-h-screen p-4">
+        <motion.div 
+          initial={{ opacity: 0, y: -50 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, ease: 'easeOut' }}
+          className="w-full max-w-md"
+        >
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-white/60 backdrop-blur-sm border border-white/40 shadow-lg">
+              <span className="text-2xl font-bold text-foreground">NAND</span>
             </div>
           </div>
 
-          {/* Glass card */}
-          <div className="glass-card rounded-3xl p-8 md:p-10 hover-lift">
+          <div className="glass-card rounded-3xl p-8 md:p-10">
             <div className="space-y-6">
-              {/* Header */}
               <div className="text-center space-y-2">
                 <h1 className="text-3xl md:text-4xl font-bold text-foreground">
-                  Welcome to Nand Dairy
+                  Samiti Portal
                 </h1>
-                <p className="text-muted-foreground text-base">
-                  Samiti Portal Login
-                </p>
+                <p className="text-muted-foreground">Securely access your Samiti dashboard.</p>
               </div>
 
-              {/* Form */}
               <form onSubmit={handleSubmit} className="space-y-5">
                 <div className="space-y-2">
                   <Label htmlFor="samitiId" className="text-sm font-medium text-foreground">
@@ -60,7 +55,7 @@ const SamitiLogin = () => {
                     placeholder="Enter your Samiti ID"
                     value={samitiId}
                     onChange={(e) => setSamitiId(e.target.value)}
-                    className="h-12 bg-white/60 border-white/40 focus:border-primary transition-all duration-300 placeholder:text-muted-foreground/60"
+                    className="h-12 bg-white/60 border-white/40 focus:border-blue-500 transition-all duration-300 placeholder:text-muted-foreground/60"
                     required
                   />
                 </div>
@@ -76,7 +71,7 @@ const SamitiLogin = () => {
                       placeholder="Enter your Password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="h-12 pr-12 bg-white/60 border-white/40 focus:border-primary transition-all duration-300 placeholder:text-muted-foreground/60"
+                      className="h-12 pr-12 bg-white/60 border-white/40 focus:border-blue-500 transition-all duration-300 placeholder:text-muted-foreground/60"
                       required
                     />
                     <button
@@ -95,7 +90,7 @@ const SamitiLogin = () => {
 
                 <Button
                   type="submit"
-                  className="w-full h-12 bg-gradient-to-r from-[hsl(42,78%,60%)] to-[hsl(38,72%,55%)] hover:from-[hsl(42,78%,55%)] hover:to-[hsl(38,72%,50%)] text-white font-medium text-base rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02]"
+                  className="w-full h-12 bg-blue-500 hover:bg-blue-600 text-white font-medium text-base rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02]"
                 >
                   Log In
                 </Button>
@@ -103,7 +98,7 @@ const SamitiLogin = () => {
                 <div className="text-center">
                   <a
                     href="#"
-                    className="text-sm text-foreground hover:text-primary transition-colors underline underline-offset-2"
+                    className="text-sm text-blue-600 hover:underline transition-colors"
                   >
                     Forgot Password?
                   </a>
@@ -111,12 +106,18 @@ const SamitiLogin = () => {
               </form>
             </div>
           </div>
+          
+          <div className="text-center mt-6">
+            <Link to="/" className="inline-flex items-center text-sm text-foreground/80 hover:text-foreground transition-colors">
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back to role selection
+            </Link>
+          </div>
 
-          {/* Footer */}
-          <p className="text-center text-sm text-foreground/70 mt-8 animate-fade-in">
+          <p className="text-center text-sm text-foreground/70 mt-8">
             © 2024 Nand Dairy. All Rights Reserved.
           </p>
-        </div>
+        </motion.div>
       </div>
     </div>
   );

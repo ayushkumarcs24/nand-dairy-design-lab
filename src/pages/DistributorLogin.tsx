@@ -7,7 +7,7 @@ import { motion } from 'framer-motion';
 import { ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
-const AdminLogin = () => {
+const DistributorLogin = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -19,9 +19,9 @@ const AdminLogin = () => {
   };
 
   return (
-    <div className="relative min-h-screen w-full bg-gradient-to-br from-blue-100 via-white to-blue-50 text-foreground overflow-hidden">
+    <div className="relative min-h-screen w-full bg-gradient-to-br from-green-100 via-white to-green-50 text-foreground overflow-hidden">
       <div className="absolute inset-0 -z-10 h-full w-full bg-white bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px]"></div>
-      <div className="absolute top-0 bottom-0 left-0 right-0 -z-10 bg-[radial-gradient(circle_500px_at_50%_200px,#C9EBFF,transparent)]"></div>
+      <div className="absolute top-0 bottom-0 left-0 right-0 -z-10 bg-[radial-gradient(circle_500px_at_50%_200px,#C9FFDB,transparent)]"></div>
 
       <div className="relative z-10 flex flex-col items-center justify-center min-h-screen p-4">
         <motion.div 
@@ -40,7 +40,7 @@ const AdminLogin = () => {
             <div className="space-y-6">
               <div className="text-center space-y-2">
                 <h1 className="text-3xl md:text-4xl font-bold text-foreground">
-                  Admin Portal
+                  Distributor Portal
                 </h1>
                 <p className="text-muted-foreground">Welcome back, please login to your account.</p>
               </div>
@@ -53,10 +53,10 @@ const AdminLogin = () => {
                   <Input
                     id="email"
                     type="email"
-                    placeholder="admin@nanddairy.com"
+                    placeholder="distributor@nanddairy.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="h-12 bg-white/60 border-white/40 focus:border-blue-500 transition-all duration-300 placeholder:text-muted-foreground/60"
+                    className="h-12 bg-white/60 border-white/40 focus:border-green-500 transition-all duration-300 placeholder:text-muted-foreground/60"
                     required
                   />
                 </div>
@@ -72,7 +72,7 @@ const AdminLogin = () => {
                       placeholder="Enter your password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="h-12 pr-12 bg-white/60 border-white/40 focus:border-blue-500 transition-all duration-300 placeholder:text-muted-foreground/60"
+                      className="h-12 pr-12 bg-white/60 border-white/40 focus:border-green-500 transition-all duration-300 placeholder:text-muted-foreground/60"
                       required
                     />
                     <button
@@ -92,7 +92,7 @@ const AdminLogin = () => {
                 <div className="text-right">
                   <a
                     href="#"
-                    className="text-sm text-blue-600 hover:underline transition-colors"
+                    className="text-sm text-green-600 hover:underline transition-colors"
                   >
                     Forgot Password?
                   </a>
@@ -100,7 +100,7 @@ const AdminLogin = () => {
 
                 <Button
                   type="submit"
-                  className="w-full h-12 bg-blue-500 hover:bg-blue-600 text-white font-medium text-base rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02]"
+                  className="w-full h-12 bg-green-500 hover:bg-green-600 text-white font-medium text-base rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02]"
                 >
                   Log In
                 </Button>
@@ -124,4 +124,4 @@ const AdminLogin = () => {
   );
 };
 
-export default AdminLogin;
+export default DistributorLogin;
