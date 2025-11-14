@@ -16,12 +16,14 @@ const AdminLogin = () => {
     e.preventDefault();
     // Handle login logic here
     console.log("Login attempt:", { email, password });
+    // Redirect to dashboard on successful login
+    window.location.href = '/admin/dashboard';
   };
 
   return (
     <div className="relative min-h-screen w-full bg-gradient-to-br from-blue-100 via-white to-blue-50 text-foreground overflow-hidden">
       <div className="absolute inset-0 -z-10 h-full w-full bg-white bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px]"></div>
-      <div className="absolute top-0 bottom-0 left-0 right-0 -z-10 bg-[radial-gradient(circle_500px_at_50%_200px,#C9EBFF,transparent)]"></div>
+      <div className="absolute top-0 bottom-0 left-0 right-0 -z-10 bg-[radial-gradient(circle_500px_at_50%_200px,#C9E2FF,transparent)]"></div>
 
       <div className="relative z-10 flex flex-col items-center justify-center min-h-screen p-4">
         <motion.div 
@@ -31,7 +33,7 @@ const AdminLogin = () => {
           className="w-full max-w-md"
         >
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-white/60 backdrop-blur-sm border border-white/40 shadow-lg">
+            <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl glass-card">
               <span className="text-2xl font-bold text-foreground">NAND</span>
             </div>
           </div>

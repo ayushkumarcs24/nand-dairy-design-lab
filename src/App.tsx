@@ -12,10 +12,12 @@ import FarmerLogin from "./pages/FarmerLogin";
 import DistributorLogin from "./pages/DistributorLogin";
 import LogisticsLogin from "./pages/LogisticsLogin";
 import FarmerDashboard from "./pages/FarmerDashboard";
+import AdminDashboard from "./pages/admin/AdminDashboard";
 import FarmerOrders from "./pages/farmer/FarmerOrders";
 import FarmerProducts from "./pages/farmer/FarmerProducts";
 import FarmerCustomers from "./pages/farmer/FarmerCustomers";
 import FarmerAnalytics from "./pages/farmer/FarmerAnalytics";
+import SamitiDashboard from "./pages/samiti/SamitiDashboard";
 
 const queryClient = new QueryClient();
 
@@ -33,12 +35,14 @@ const App = () => (
           <Route path="/distributor-login" element={<DistributorLogin />} />
           <Route path="/logistics-login" element={<LogisticsLogin />} />
           <Route path="/index" element={<Index />} />
+          <Route path="/admin/dashboard" element={<AdminDashboard />} />
           <Route path="/farmer/dashboard" element={<FarmerDashboard />} />
           <Route path="/farmer-orders" element={<FarmerOrders />} />
           <Route path="/farmer-products" element={<FarmerProducts />} />
           <Route path="/farmer-customers" element={<FarmerCustomers />} />
           <Route path="/farmer-analytics" element={<FarmerAnalytics />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+          <Route path="/samiti/dashboard" element={<SamitiDashboard />} />
+          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTe */}
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
