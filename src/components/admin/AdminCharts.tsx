@@ -6,8 +6,8 @@ const salesData = [
   { name: 'Feb', revenue: 3000 },
   { name: 'Mar', revenue: 5000 },
   { name: 'Apr', revenue: 4500 },
-  { name: 'May', revenue: 6000 },
-  { name: 'Jun', revenue: 5500 },
+  { name: 'June', revenue: 6000 },
+  { name: 'July', revenue: 5500 },
 ];
 
 const productData = [
