@@ -16,6 +16,8 @@ const DistributorLogin = () => {
     e.preventDefault();
     // Handle login logic here
     console.log("Login attempt:", { email, password });
+    // Redirect to distributor dashboard on successful login
+    window.location.href = "/distributor/dashboard";
   };
 
   return (

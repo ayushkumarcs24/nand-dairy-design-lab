@@ -16,6 +16,8 @@ const LogisticsLogin = () => {
     e.preventDefault();
     // Handle login logic here
     console.log("Login attempt:", { email, password });
+    // Redirect to logistics dashboard on successful login
+    window.location.href = '/logistics/dashboard';
   };
 
   return (
