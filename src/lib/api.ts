@@ -105,3 +105,32 @@ export async function getOwnerDashboardSummary(): Promise<OwnerDashboardSummary>
     method: "GET",
   });
 }
+
+export interface OwnerSamitiSummary {
+  id: number;
+  name: string;
+  code: string;
+  location: string;
+  contactName: string;
+  contactEmail: string;
+  latestMonth: number | null;
+  latestYear: number | null;
+  latestTotalMilk: number;
+  latestTotalPayout: number;
+}
+
+export async function getOwnerSamitis(): Promise<OwnerSamitiSummary[]> {
+  return apiFetch<OwnerSamitiSummary[]>("/owner/samitis", { method: "GET" });
+}
+
+export interface OwnerDistributorSummary {
+  id: number;
+  name: string;
+  email: string;
+  totalOrders: number;
+  totalValue: number;
+}
+
+export async function getOwnerDistributors(): Promise<OwnerDistributorSummary[]> {
+  return apiFetch<OwnerDistributorSummary[]>("/owner/distributors", { method: "GET" });
+}

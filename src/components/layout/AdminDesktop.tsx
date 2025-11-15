@@ -36,10 +36,29 @@ const AdminDesktop = () => {
           <DropdownMenuContent align="end" className="bg-white/50 backdrop-blur-xl">
             <DropdownMenuLabel>My Account</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>Settings</DropdownMenuItem>
-            <DropdownMenuItem>Support</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => (window.location.href = "/admin/settings")}>
+              Settings
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => {
+                window.location.href = "mailto:support@nanddairy.com";
+              }}
+            >
+              Support
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>Logout</DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => {
+                fetch("http://localhost:4000/api/auth/logout", {
+                  method: "POST",
+                  credentials: "include",
+                }).finally(() => {
+                  window.location.href = "/admin-login";
+                });
+              }}
+            >
+              Logout
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </header>

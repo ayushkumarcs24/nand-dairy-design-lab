@@ -30,7 +30,13 @@ const AdminLists = () => {
       <div className="glass-card rounded-2xl p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-semibold text-lg text-foreground">Recent Samitis</h3>
-          <Button variant="ghost" className="text-blue-500 hover:bg-blue-500/10">View All</Button>
+          <Button
+            variant="ghost"
+            className="text-blue-500 hover:bg-blue-500/10"
+            onClick={() => (window.location.href = "/admin/samitis")}
+          >
+            View All
+          </Button>
         </div>
         <div className="space-y-4">
           {samitis.map((samiti, index) => (
@@ -52,7 +58,13 @@ const AdminLists = () => {
       <div className="glass-card rounded-2xl p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-semibold text-lg text-foreground">Top Distributors</h3>
-          <Button variant="ghost" className="text-blue-500 hover:bg-blue-500/10">View All</Button>
+          <Button
+            variant="ghost"
+            className="text-blue-500 hover:bg-blue-500/10"
+            onClick={() => (window.location.href = "/admin/distributors")}
+          >
+            View All
+          </Button>
         </div>
         <div className="space-y-4">
           {distributors.map((distributor, index) => (

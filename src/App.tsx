@@ -14,6 +14,9 @@ import DistributorLogin from "./pages/DistributorLogin";
 import LogisticsLogin from "./pages/LogisticsLogin";
 import FarmerDashboard from "./pages/FarmerDashboard";
 import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminSamitis from "./pages/admin/AdminSamitis";
+import AdminDistributors from "./pages/admin/AdminDistributors";
+import AdminSettings from "./pages/admin/AdminSettings";
 import FarmerOrders from "./pages/farmer/FarmerOrders";
 import FarmerProducts from "./pages/farmer/FarmerProducts";
 import FarmerCustomers from "./pages/farmer/FarmerCustomers";
@@ -40,6 +43,9 @@ const App = () => (
           <Route path="/logistics-login" element={<LogisticsLogin />} />
           <Route path="/index" element={<Index />} />
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
+          <Route path="/admin/samitis" element={<AdminSamitis />} />
+          <Route path="/admin/distributors" element={<AdminDistributors />} />
+          <Route path="/admin/settings" element={<AdminSettings />} />
           <Route path="/samiti/dashboard" element={<SamitiDashboard />} />
           <Route path="/farmer/dashboard" element={<FarmerDashboard />} />
           <Route path="/farmer/daily-entry" element={<FarmerDailyEntry />} />

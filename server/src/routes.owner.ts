@@ -60,6 +60,64 @@ ownerRouter.delete("/products/:id", async (req, res) => {
   res.status(204).send();
 });
 
+// SAMITIS OVERVIEW
+ownerRouter.get("/samitis", async (_req, res) => {
+  const samitis = await prisma.samiti.findMany({
+    include: {
+      user: true,
+      monthlyTotal: {
+        orderBy: [{ year: "desc" }, { month: "desc" }],
+        take: 1,
+      },
+    },
+    orderBy: { name: "asc" },
+  });
+
+  res.json(
+    samitis.map((s) => ({
+      id: s.id,
+      name: s.name,
+      code: s.code,
+      location: s.location,
+      contactName: s.user.name,
+      contactEmail: s.user.email,
+      latestMonth: s.monthlyTotal[0]?.month ?? null,
+      latestYear: s.monthlyTotal[0]?.year ?? null,
+      latestTotalMilk: s.monthlyTotal[0]?.totalMilkLitre ?? 0,
+      latestTotalPayout: s.monthlyTotal[0]?.totalPayout ?? 0,
+    })),
+  );
+});
+
+// DISTRIBUTORS OVERVIEW
+ownerRouter.get("/distributors", async (_req, res) => {
+  const distributors = await prisma.user.findMany({
+    where: { role: Role.DISTRIBUTOR },
+    include: {
+      distributorOrders: {
+        include: { product: true },
+      },
+    },
+    orderBy: { name: "asc" },
+  });
+
+  const result = distributors.map((d) => {
+    const orders = d.distributorOrders;
+    const totalOrders = orders.length;
+    const totalValue = orders.reduce((sum, o) => sum + o.totalAmount, 0);
+
+    return {
+      id: d.id,
+      name: d.name,
+      email: d.email,
+      totalOrders,
+      totalValue,
+    };
+  });
+
+  res.json(result);
+});
+
 // DISTRIBUTOR ORDERS OVERVIEW
 ownerRouter.get("/orders", async (_req, res) => {
   const orders = await prisma.distributorOrder.findMany({
