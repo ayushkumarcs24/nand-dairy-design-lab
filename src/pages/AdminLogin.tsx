@@ -3,21 +3,35 @@ import { Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { motion } from 'framer-motion';
-import { ArrowLeft } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { motion } from "framer-motion";
+import { ArrowLeft } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { useMutation } from "@tanstack/react-query";
+import { loginApi } from "@/lib/api";
+import { useToast } from "@/components/ui/use-toast";
 
 const AdminLogin = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
+  const mutation = useMutation({
+    mutationFn: ({ email, password }: { email: string; password: string }) =>
+      loginApi({ email, password, expectedRole: "OWNER" }),
+    onSuccess: () => {
+      navigate("/admin/dashboard");
+    },
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : "Login failed";
+      toast({ title: "Login failed", description: message, variant: "destructive" });
+    },
+  });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle login logic here
-    console.log("Login attempt:", { email, password });
-    // Redirect to dashboard on successful login
-    window.location.href = '/admin/dashboard';
+    mutation.mutate({ email, password });
   };
 
   return (
@@ -102,9 +116,10 @@ const AdminLogin = () => {
 
                 <Button
                   type="submit"
-                  className="w-full h-12 bg-blue-500 hover:bg-blue-600 text-white font-medium text-base rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02]"
+                  disabled={mutation.isPending}
+                  className="w-full h-12 bg-blue-500 hover:bg-blue-600 text-white font-medium text-base rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  Log In
+                  {mutation.isPending ? "Logging in..." : "Log In"}
                 </Button>
               </form>
             </div>

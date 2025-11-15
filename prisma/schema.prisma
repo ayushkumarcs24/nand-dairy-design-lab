@@ -1,0 +1,238 @@
+// Prisma schema for Nand Dairy Design Lab backend
+// SQLite by default; you can point DATABASE_URL to Postgres/MySQL if desired.
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  OWNER
+  SAMITI
+  FARMER
+  DISTRIBUTOR
+  LOGISTICS
+}
+
+enum MilkSession {
+  MORNING
+  EVENING
+}
+
+enum OrderStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum PaymentStatus {
+  UNPAID
+  PARTIALLY_PAID
+  PAID
+}
+
+enum DispatchStatus {
+  PLANNED
+  LOADING
+  DISPATCHED
+  DELIVERED
+  CANCELLED
+}
+
+model User {
+  id           Int           @id @default(autoincrement())
+  email        String        @unique
+  passwordHash String
+  name         String
+  role         Role
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  farmer       Farmer?
+  samiti       Samiti?
+  ownerAdmin   OwnerAdmin?
+
+  distributorOrders DistributorOrder[] @relation("DistributorUserOrders")
+
+  notifications Notification[]
+}
+
+model OwnerAdmin {
+  id        Int      @id @default(autoincrement())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    Int      @unique
+  samitis   Samiti[]
+  products  Product[]
+}
+
+model Samiti {
+  id           Int                @id @default(autoincrement())
+  name         String
+  code         String             @unique
+  location     String
+  user         User               @relation(fields: [userId], references: [id])
+  userId       Int                @unique
+  owner        OwnerAdmin         @relation(fields: [ownerId], references: [id])
+  ownerId      Int
+  farmers      Farmer[]
+  milkEntries  MilkEntry[]
+  monthlyTotal SamitiMonthlyTotal[]
+}
+
+model Farmer {
+  id          Int         @id @default(autoincrement())
+  farmerCode  String      @unique
+  user        User        @relation(fields: [userId], references: [id])
+  userId      Int         @unique
+  samiti      Samiti      @relation(fields: [samitiId], references: [id])
+  samitiId    Int
+  milkEntries MilkEntry[]
+}
+
+model FatSnfValue {
+  id            Int      @id @default(autoincrement())
+  minFat        Float
+  maxFat        Float
+  minSnf        Float
+  maxSnf        Float
+  pricePerLitre Float
+  entries       MilkEntry[]
+}
+
+model MilkEntry {
+  id            Int         @id @default(autoincrement())
+  date          DateTime    @default(now())
+  session       MilkSession
+  quantityLitre Float
+  fat           Float
+  snf           Float
+  pricePerLitre Float
+  totalAmount   Float
+
+  farmer     Farmer   @relation(fields: [farmerId], references: [id])
+  farmerId   Int
+  samiti     Samiti   @relation(fields: [samitiId], references: [id])
+  samitiId   Int
+  fatSnfBand FatSnfValue? @relation(fields: [fatSnfValueId], references: [id])
+  fatSnfValueId Int?
+}
+
+model SamitiMonthlyTotal {
+  id             Int      @id @default(autoincrement())
+  month          Int
+  year           Int
+  totalMilkLitre Float   @default(0)
+  avgFat         Float    @default(0)
+  avgSnf         Float    @default(0)
+  totalPayout    Float    @default(0)
+
+  samiti   Samiti @relation(fields: [samitiId], references: [id])
+  samitiId Int
+
+  @@unique([samitiId, month, year], name: "samitiId_month_year")
+}
+
+model Product {
+  id          Int             @id @default(autoincrement())
+  name        String
+  description String?
+  price       Float
+  unit        String          @default("L")
+  inventory   Int             @default(0)
+  isActive    Boolean         @default(true)
+
+  owner   OwnerAdmin        @relation(fields: [ownerId], references: [id])
+  ownerId Int
+
+  orders  DistributorOrder[]
+}
+
+model DistributorOrder {
+  id            Int           @id @default(autoincrement())
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  status        OrderStatus   @default(PENDING)
+  quantity      Int
+  totalAmount   Float
+
+  distributor   User          @relation("DistributorUserOrders", fields: [distributorId], references: [id])
+  distributorId Int
+
+  product   Product          @relation(fields: [productId], references: [id])
+  productId Int
+
+  payments  DistributorPayment[]
+  dispatches LogisticsDispatch[]
+}
+
+model DistributorPayment {
+  id           Int           @id @default(autoincrement())
+  amount       Float
+  status       PaymentStatus @default(UNPAID)
+  createdAt    DateTime      @default(now())
+  paidAt       DateTime?
+
+  order   DistributorOrder @relation(fields: [orderId], references: [id])
+  orderId Int
+}
+
+model LogisticsVehicle {
+  id           Int              @id @default(autoincrement())
+  vehicleCode  String           @unique
+  plateNumber  String
+  capacityLitre Int
+  driverName   String
+  isActive     Boolean          @default(true)
+
+  routes    LogisticsRoute[]
+  dispatches LogisticsDispatch[]
+}
+
+model LogisticsRoute {
+  id           Int              @id @default(autoincrement())
+  name         String
+  origin       String
+  destination  String
+  distanceKm   Float
+  estimatedMinutes Int
+
+  vehicle   LogisticsVehicle @relation(fields: [vehicleId], references: [id])
+  vehicleId Int
+
+  dispatches LogisticsDispatch[]
+}
+
+model LogisticsDispatch {
+  id             Int             @id @default(autoincrement())
+  status         DispatchStatus  @default(PLANNED)
+  scheduledDate  DateTime
+  departedAt     DateTime?
+  deliveredAt    DateTime?
+
+  vehicle   LogisticsVehicle @relation(fields: [vehicleId], references: [id])
+  vehicleId Int
+
+  route     LogisticsRoute   @relation(fields: [routeId], references: [id])
+  routeId   Int
+
+  order   DistributorOrder @relation(fields: [orderId], references: [id])
+  orderId Int
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  type      String
+  title     String
+  message   String
+  createdAt DateTime @default(now())
+  readAt    DateTime?
+
+  user   User @relation(fields: [userId], references: [id])
+  userId Int
+}

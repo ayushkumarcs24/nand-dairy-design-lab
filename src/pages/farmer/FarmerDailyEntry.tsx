@@ -1,20 +1,59 @@
 import { useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import Sidebar from "@/components/layout/Sidebar";
 import FarmerMobile from "@/components/layout/FarmerMobile";
 import FarmerDesktop from "@/components/layout/FarmerDesktop";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
+import { createMilkEntry } from "@/lib/api";
+import { useToast } from "@/components/ui/use-toast";
 
 const FarmerDailyEntry = () => {
-  const [session, setSession] = useState<"morning" | "evening">("morning");
-  const [farmerId, setFarmerId] = useState("");
+  const [session, setSession] = useState<"MORNING" | "EVENING">("MORNING");
   const [quantity, setQuantity] = useState("");
+  const [fat, setFat] = useState("");
+  const [snf, setSnf] = useState("");
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const mutation = useMutation({
+    mutationFn: createMilkEntry,
+    onSuccess: () => {
+      toast({ title: "Entry submitted", description: "Your milk data has been recorded." });
+      setQuantity("");
+      setFat("");
+      setSnf("");
+      queryClient.invalidateQueries({ queryKey: ["farmer-dashboard-summary"] });
+    },
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : "Something went wrong";
+      toast({ title: "Could not submit entry", description: message, variant: "destructive" });
+    },
+  });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // For now just log the values; can be wired to API later.
-    console.log("Daily milk entry submitted", { session, farmerId, quantity });
+
+    const qty = Number(quantity);
+    const fatVal = Number(fat);
+    const snfVal = Number(snf);
+
+    if (!qty || qty <= 0 || !fatVal || !snfVal) {
+      toast({
+        title: "Invalid input",
+        description: "Please enter quantity, FAT and SNF values.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    mutation.mutate({
+      session,
+      quantityLitre: qty,
+      fat: fatVal,
+      snf: snfVal,
+    });
   };
 
   return (
@@ -42,21 +81,21 @@ const FarmerDailyEntry = () => {
               </header>
 
               <div className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-100 md:p-8">
-                <div className="mb-6 flex rounded-full bg-slate-50 p-1 text-sm font-medium text-slate-500">
+              <div className="mb-6 flex rounded-full bg-slate-50 p-1 text-sm font-medium text-slate-500">
                   <button
                     type="button"
-                    onClick={() => setSession("morning")}
+                    onClick={() => setSession("MORNING")}
                     className={`flex-1 rounded-full px-4 py-2 transition-all ${
-                      session === "morning" ? "bg-white text-slate-900 shadow-sm" : "hover:text-slate-700"
+                      session === "MORNING" ? "bg-white text-slate-900 shadow-sm" : "hover:text-slate-700"
                     }`}
                   >
                     Morning
                   </button>
                   <button
                     type="button"
-                    onClick={() => setSession("evening")}
+                    onClick={() => setSession("EVENING")}
                     className={`flex-1 rounded-full px-4 py-2 transition-all ${
-                      session === "evening" ? "bg-white text-slate-900 shadow-sm" : "hover:text-slate-700"
+                      session === "EVENING" ? "bg-white text-slate-900 shadow-sm" : "hover:text-slate-700"
                     }`}
                   >
                     Evening
@@ -64,19 +103,6 @@ const FarmerDailyEntry = () => {
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-5">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-slate-700" htmlFor="farmerId">
-                      Farmer ID
-                    </label>
-                    <Input
-                      id="farmerId"
-                      value={farmerId}
-                      onChange={(e) => setFarmerId(e.target.value)}
-                      placeholder="Enter your Farmer ID"
-                      className="h-11 rounded-xl border-slate-200 bg-slate-50/60 text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:ring-blue-200"
-                    />
-                  </div>
-
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-slate-700" htmlFor="quantity">
                       Milk Quantity (Liters)
@@ -93,12 +119,46 @@ const FarmerDailyEntry = () => {
                     />
                   </div>
 
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-slate-700" htmlFor="fat">
+                        FAT %
+                      </label>
+                      <Input
+                        id="fat"
+                        type="number"
+                        min="0"
+                        step="0.1"
+                        value={fat}
+                        onChange={(e) => setFat(e.target.value)}
+                        placeholder="e.g., 4.2"
+                        className="h-11 rounded-xl border-slate-200 bg-slate-50/60 text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:ring-blue-200"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-slate-700" htmlFor="snf">
+                        SNF %
+                      </label>
+                      <Input
+                        id="snf"
+                        type="number"
+                        min="0"
+                        step="0.1"
+                        value={snf}
+                        onChange={(e) => setSnf(e.target.value)}
+                        placeholder="e.g., 8.5"
+                        className="h-11 rounded-xl border-slate-200 bg-slate-50/60 text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:ring-blue-200"
+                      />
+                    </div>
+                  </div>
+
                   <Button
                     type="submit"
-                    className="mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#008cff] text-sm font-semibold text-white shadow-md shadow-blue-200 transition hover:bg-[#0074d9] hover:shadow-lg"
+                    disabled={mutation.isPending}
+                    className="mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#008cff] text-sm font-semibold text-white shadow-md shadow-blue-200 transition hover:bg-[#0074d9] hover:shadow-lg disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     <span className="text-base">▶</span>
-                    <span>Submit Data</span>
+                    <span>{mutation.isPending ? "Submitting..." : "Submit Data"}</span>
                   </Button>
                 </form>
               </div>

@@ -1,6 +1,9 @@
 import { IndianRupee, Droplets, Gauge } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
+import { useQuery } from "@tanstack/react-query";
+import { getFarmerDashboardSummary } from "@/lib/api";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const cardVariants = {
   hover: {
@@ -57,28 +60,38 @@ const StatCard = ({
 );
 
 const FarmerSummaryCards = () => {
+  const { data, isLoading } = useQuery({
+    queryKey: ["farmer-dashboard-summary"],
+    queryFn: getFarmerDashboardSummary,
+  });
+
+  const totalMilk = data?.totalMilk ?? 0;
+  const totalEarnings = data?.totalEarnings ?? 0;
+  const avgFat = data?.avgFat ?? 0;
+  const avgSnf = data?.avgSnf ?? 0;
+
   const stats = [
     {
-      title: "Today's Earnings",
-      value: "₹ 1,250.75",
-      helper: "Updated just now",
-      trend: "+ 5.2% vs yesterday",
+      title: "This Month's Earnings",
+      value: `₹ ${totalEarnings.toFixed(2)}`,
+      helper: "Calculated from submitted entries",
+      trend: "Based on current month data",
       trendType: "up" as const,
       icon: <IndianRupee className="h-5 w-5" />,
     },
     {
-      title: "Daily Milk Collection",
-      value: "85.5 Ltrs",
-      helper: "Total across all shifts",
-      trend: "- 1.5% vs yesterday",
-      trendType: "down" as const,
+      title: "Total Milk (MTD)",
+      value: `${totalMilk.toFixed(1)} Ltrs`,
+      helper: "All sessions this month",
+      trend: "Updated after each entry",
+      trendType: "neutral" as const,
       icon: <Droplets className="h-5 w-5" />,
     },
     {
-      title: "Average Quality (FAT/SNF)",
-      value: "4.2% / 8.8%",
-      helper: "Quality is optimal",
-      trend: "Within premium range",
+      title: "Avg Quality (FAT/SNF)",
+      value: `${avgFat.toFixed(1)}% / ${avgSnf.toFixed(1)}%`,
+      helper: "From your actual records",
+      trend: "Higher quality yields better price",
       trendType: "neutral" as const,
       icon: <Gauge className="h-5 w-5" />,
     },
@@ -112,9 +125,11 @@ const FarmerSummaryCards = () => {
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
-        {stats.map((s) => (
-          <StatCard key={s.title} {...s} />
-        ))}
+        {isLoading
+          ? Array.from({ length: 3 }).map((_, idx) => (
+              <Skeleton key={idx} className="h-32 rounded-2xl" />
+            ))
+          : stats.map((s) => <StatCard key={s.title} {...s} />)}
       </div>
     </section>
   );

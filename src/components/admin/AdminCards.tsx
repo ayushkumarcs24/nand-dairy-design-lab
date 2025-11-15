@@ -1,5 +1,8 @@
 import { DollarSign, Users, Package, ArrowUp, ArrowDown } from "lucide-react";
 import { motion } from "framer-motion";
+import { useQuery } from "@tanstack/react-query";
+import { getOwnerDashboardSummary } from "@/lib/api";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const cardVariants = {
   hover: {
@@ -32,42 +35,49 @@ const StatCard = ({ title, value, icon, trend, trendType }) => (
 );
 
 const AdminCards = () => {
+  const { data, isLoading } = useQuery({
+    queryKey: ["owner-dashboard-summary"],
+    queryFn: getOwnerDashboardSummary,
+  });
+
   const cardData = [
     {
-      title: "Total Revenue",
-      value: "₹4,52,318.89",
-      icon: <DollarSign className="h-6 w-6 text-muted-foreground" />,
-      trend: "+20.1%",
-      trendType: "increase",
-    },
-    {
       title: "Samitis",
-      value: "+235",
+      value: data?.samitiCount?.toString() ?? "0",
       icon: <Users className="h-6 w-6 text-muted-foreground" />,
-      trend: "+18.1%",
+      trend: "+0%",
       trendType: "increase",
     },
     {
-      title: "Products Sold",
-      value: "+12,234",
+      title: "Products",
+      value: data?.productCount?.toString() ?? "0",
       icon: <Package className="h-6 w-6 text-muted-foreground" />,
-      trend: "+19%",
+      trend: "+0%",
       trendType: "increase",
     },
     {
       title: "Distributors",
-      value: "45",
+      value: data?.distributors?.toString() ?? "0",
       icon: <Users className="h-6 w-6 text-muted-foreground" />,
-      trend: "-2%",
-      trendType: "decrease",
+      trend: "+0%",
+      trendType: "increase",
+    },
+    {
+      title: "Total Orders",
+      value: data?.orders?.toString() ?? "0",
+      icon: <DollarSign className="h-6 w-6 text-muted-foreground" />,
+      trend: "+0%",
+      trendType: "increase",
     },
   ];
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-      {cardData.map((card, index) => (
-        <StatCard key={index} {...card} />
-      ))}
+      {isLoading
+        ? Array.from({ length: 4 }).map((_, idx) => (
+            <Skeleton key={idx} className="h-32 rounded-2xl" />
+          ))
+        : cardData.map((card, index) => <StatCard key={index} {...card} />)}
     </div>
   );
 };
