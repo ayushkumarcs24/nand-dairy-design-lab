@@ -1,0 +1,374 @@
+# Implementation Plan
+
+- [x] 1. Extend database schema with new models
+  - Add SamitiInvoice, FarmerPayout, OrderItem, Payment, and VehicleAssignment models to Prisma schema
+  - Create and run database migration
+  - Generate Prisma client
+  - _Requirements: 5.1, 7.2, 8.2, 11.3, 13.3, 15.3_
+
+- [x] 2. Implement shared backend utilities and middleware
+  - [x] 2.1 Create business logic utilities for pricing calculation, credit blocking check, and capacity validation
+    - Implement FAT/SNF to price calculation function
+    - Implement distributor credit blocking check function
+    - Implement vehicle capacity validation function
+    - _Requirements: 19.1, 20.1, 15.2_
+  - [-] 2.2 Write property tests for business logic utilities
+    - **Property 17: Milk collection pricing calculation**
+    - **Property 39: Credit blocking rule enforcement**
+    - **Property 52: Vehicle capacity validation**
+    - **Validates: Requirements 6.2, 11.4, 15.2**
+  - [x] 2.3 Create error handling middleware and custom error classes
+    - Implement ValidationError, AuthorizationError, BusinessLogicError classes
+    - Create centralized error handling middleware
+    - _Requirements: All error scenarios_
+
+- [ ] 3. Implement Owner API endpoints for entity management
+  - [x] 3.1 Implement samiti CRUD endpoints
+    - POST /api/owner/samitis - Create samiti with user account
+    - GET /api/owner/samitis - List all samitis
+    - GET /api/owner/samitis/:id - Get samiti details
+    - PUT /api/owner/samitis/:id - Update samiti
+    - DELETE /api/owner/samitis/:id - Delete samiti
+    - _Requirements: 1.2, 1.3, 1.4, 1.5_
+  - [ ] 3.2 Write property tests for samiti endpoints
+    - **Property 1: Samiti persistence**
+    - **Property 2: Samiti update persistence**
+    - **Validates: Requirements 1.2, 1.3, 1.5**
+  - [x] 3.3 Implement distributor CRUD endpoints
+    - POST /api/owner/distributors - Create distributor with user account
+    - GET /api/owner/distributors - List all distributors with aggregated data
+    - GET /api/owner/distributors/:id - Get distributor details
+    - PUT /api/owner/distributors/:id - Update distributor
+    - DELETE /api/owner/distributors/:id - Delete distributor
+    - _Requirements: 2.2, 2.3, 2.4, 2.5_
+  - [ ] 3.4 Write property tests for distributor endpoints
+    - **Property 3: Distributor creation completeness**
+    - **Property 4: Distributor list completeness**
+    - **Property 5: Blocked distributor indicator**
+    - **Validates: Requirements 2.2, 2.3, 2.5**
+  - [x] 3.5 Implement product CRUD endpoints
+    - POST /api/owner/products - Create product
+    - GET /api/owner/products - List all products
+    - GET /api/owner/products/:id - Get product details
+    - PUT /api/owner/products/:id - Update product
+    - DELETE /api/owner/products/:id - Discontinue product
+    - _Requirements: 3.2, 3.3, 3.4, 3.5_
+  - [ ] 3.6 Write property tests for product endpoints
+    - **Property 6: Product availability after creation**
+    - **Property 7: Product list completeness**
+    - **Property 8: Product update affects future orders only**
+    - **Property 9: Product discontinuation preserves history**
+    - **Validates: Requirements 3.2, 3.3, 3.4, 3.5**
+  - [x] 3.7 Implement vehicle CRUD endpoints
+    - POST /api/owner/vehicles - Create vehicle
+    - GET /api/owner/vehicles - List all vehicles
+    - GET /api/owner/vehicles/:id - Get vehicle details
+    - PUT /api/owner/vehicles/:id - Update vehicle with capacity validation
+    - DELETE /api/owner/vehicles/:id - Delete vehicle
+    - _Requirements: 4.2, 4.3, 4.5_
+  - [ ] 3.8 Write property tests for vehicle endpoints
+    - **Property 10: Vehicle availability after creation**
+    - **Property 11: Vehicle list completeness**
+    - **Property 12: Vehicle capacity constraint on update**
+    - **Validates: Requirements 4.2, 4.3, 4.5**
+
+- [ ] 4. Implement Owner API endpoints for invoice management
+  - [ ] 4.1 Implement samiti invoice endpoints
+    - GET /api/owner/samiti-invoices - List all invoices with filtering
+    - GET /api/owner/samiti-invoices/:id - Get invoice details
+    - PUT /api/owner/samiti-invoices/:id/pay - Mark invoice as paid
+    - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5_
+  - [ ] 4.2 Write property tests for invoice management
+    - **Property 13: Invoice list completeness**
+    - **Property 14: Invoice payment effects**
+    - **Property 15: Invoice filtering correctness**
+    - **Property 16: Invoice search correctness**
+    - **Validates: Requirements 5.1, 5.3, 5.4, 5.5**
+
+- [ ] 5. Implement Samiti API endpoints for milk collection
+  - [ ] 5.1 Implement milk collection CRUD endpoints
+    - POST /api/samiti/milk-collections - Create collection with pricing calculation
+    - GET /api/samiti/milk-collections - List collections with filtering
+    - GET /api/samiti/milk-collections/:id - Get collection details
+    - PUT /api/samiti/milk-collections/:id - Update collection
+    - DELETE /api/samiti/milk-collections/:id - Delete collection
+    - _Requirements: 6.2, 6.3, 6.4, 6.5_
+  - [ ] 5.2 Write property tests for milk collection endpoints
+    - **Property 17: Milk collection pricing calculation**
+    - **Property 18: Collection list completeness**
+    - **Property 19: Collection filtering correctness**
+    - **Property 20: Farmer ownership validation**
+    - **Validates: Requirements 6.2, 6.3, 6.4, 6.5**
+
+- [ ] 6. Implement Samiti API endpoints for invoicing and payouts
+  - [ ] 6.1 Implement invoice generation endpoint
+    - POST /api/samiti/invoices/generate - Generate invoice for period
+    - GET /api/samiti/invoices - List samiti's invoices
+    - GET /api/samiti/invoices/:id - Get invoice details
+    - _Requirements: 7.2, 7.3, 7.4, 7.5_
+  - [ ] 6.2 Write property tests for invoice generation
+    - **Property 21: Invoice generation aggregation**
+    - **Property 22: Invoice list completeness for samiti**
+    - **Property 23: Paid invoice enables payouts**
+    - **Validates: Requirements 7.2, 7.3, 7.4**
+  - [ ] 6.3 Implement farmer payout endpoints
+    - POST /api/samiti/payouts - Create farmer payout
+    - GET /api/samiti/payouts - List payouts
+    - GET /api/samiti/payouts/:id - Get payout details
+    - PUT /api/samiti/payouts/:id/pay - Mark payout as paid
+    - _Requirements: 8.2, 8.3, 8.4, 8.5_
+  - [ ] 6.4 Write property tests for payout management
+    - **Property 24: Payout calculation correctness**
+    - **Property 25: Payout persistence**
+    - **Property 26: Payout payment effects**
+    - **Property 27: Unpaid invoice blocks payouts**
+    - **Validates: Requirements 8.2, 8.3, 8.4, 8.5**
+
+- [ ] 7. Checkpoint - Ensure all backend tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 8. Implement Farmer API endpoints
+  - [ ] 8.1 Implement farmer collection history endpoints
+    - GET /api/farmer/collections - List collections with filtering
+    - GET /api/farmer/collections/daily - Get daily summary
+    - GET /api/farmer/collections/monthly - Get monthly summary
+    - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.5_
+  - [ ] 8.2 Write property tests for farmer collection views
+    - **Property 28: Farmer collection history completeness**
+    - **Property 29: Farmer collection date filtering**
+    - **Property 30: Collection display includes pricing**
+    - **Property 31: Daily summary aggregation**
+    - **Property 32: Monthly summary aggregation**
+    - **Validates: Requirements 9.1, 9.2, 9.3, 9.4, 9.5**
+  - [ ] 8.3 Implement farmer payout history endpoints
+    - GET /api/farmer/payouts - List payouts with filtering
+    - GET /api/farmer/payouts/:id - Get payout details
+    - GET /api/farmer/account-summary - Get account summary
+    - _Requirements: 10.1, 10.3, 10.4, 10.5_
+  - [ ] 8.4 Write property tests for farmer payout views
+    - **Property 33: Farmer payout history completeness**
+    - **Property 34: Farmer account summary correctness**
+    - **Property 35: Farmer payout filtering**
+    - **Property 36: Weekly summary aggregation**
+    - **Validates: Requirements 10.1, 10.3, 10.4, 10.5**
+
+- [ ] 9. Implement Distributor API endpoints
+  - [ ] 9.1 Implement product catalog and order creation endpoints
+    - GET /api/distributor/products - List available products
+    - POST /api/distributor/orders - Create order with credit blocking check
+    - GET /api/distributor/orders - List orders with filtering
+    - GET /api/distributor/orders/:id - Get order details
+    - GET /api/distributor/credit-status - Check if blocked
+    - _Requirements: 11.1, 11.2, 11.3, 11.4, 12.1, 12.3_
+  - [ ] 9.2 Write property tests for distributor order endpoints
+    - **Property 37: Order total calculation**
+    - **Property 38: Order persistence with items**
+    - **Property 39: Credit blocking rule enforcement**
+    - **Property 40: Distributor order history completeness**
+    - **Property 41: Distributor order filtering**
+    - **Validates: Requirements 11.2, 11.3, 11.4, 12.1, 12.3**
+  - [ ] 9.3 Implement payment endpoints
+    - POST /api/distributor/payments - Record payment
+    - GET /api/distributor/payments - List payments
+    - GET /api/distributor/due-payments - List orders with dues
+    - _Requirements: 13.2, 13.3, 13.4, 13.5_
+  - [ ] 9.4 Write property tests for payment processing
+    - **Property 44: Payment amount validation**
+    - **Property 45: Payment processing effects**
+    - **Property 46: Full payment status update**
+    - **Property 47: Credit unblocking on payment**
+    - **Validates: Requirements 13.2, 13.3, 13.4, 13.5**
+  - [ ] 9.5 Implement distributor summary endpoints
+    - GET /api/distributor/monthly-summary - Get monthly aggregation
+    - _Requirements: 12.4, 12.5_
+  - [ ] 9.6 Write property tests for distributor summaries
+    - **Property 42: Distributor monthly summary**
+    - **Property 43: Due payments display**
+    - **Validates: Requirements 12.4, 12.5**
+
+- [ ] 10. Implement Logistics API endpoints
+  - [ ] 10.1 Implement pending orders and vehicle endpoints
+    - GET /api/logistics/pending-orders - List unassigned orders with filtering
+    - GET /api/logistics/vehicles - List vehicles with capacity info
+    - GET /api/logistics/vehicles/:id - Get vehicle details
+    - _Requirements: 14.1, 14.3, 14.4, 14.5_
+  - [ ] 10.2 Write property tests for logistics order views
+    - **Property 48: Pending orders display completeness**
+    - **Property 49: Logistics order filtering**
+    - **Property 50: Order weight calculation**
+    - **Property 51: Order sorting by weight**
+    - **Validates: Requirements 14.1, 14.3, 14.4, 14.5**
+  - [ ] 10.3 Implement vehicle assignment endpoints
+    - POST /api/logistics/assignments - Assign order to vehicle
+    - DELETE /api/logistics/assignments/:id - Unassign order
+    - GET /api/logistics/assignments - List all assignments
+    - GET /api/logistics/utilization - Get fleet utilization
+    - _Requirements: 15.2, 15.3, 15.5, 16.1, 16.3, 16.4, 16.5_
+  - [ ] 10.4 Write property tests for vehicle assignments
+    - **Property 52: Vehicle capacity validation**
+    - **Property 53: Assignment creation effects**
+    - **Property 54: Vehicle assignments display completeness**
+    - **Property 55: Vehicle list with utilization**
+    - **Property 56: Vehicle utilization filtering**
+    - **Property 57: Daily logistics summary**
+    - **Property 58: Unassignment effects**
+    - **Validates: Requirements 15.2, 15.3, 15.5, 16.1, 16.3, 16.4, 16.5**
+
+- [ ] 11. Checkpoint - Ensure all backend tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 12. Implement shared frontend components
+  - [ ] 12.1 Create form components
+    - Create reusable input, select, date picker, and textarea components
+    - Implement form validation with react-hook-form and zod
+    - _Requirements: All form-based requirements_
+  - [ ] 12.2 Create table components
+    - Create reusable table with sorting, filtering, and pagination
+    - Implement search and filter controls
+    - _Requirements: All list view requirements_
+  - [ ] 12.3 Create modal and dialog components
+    - Create reusable modal for forms and confirmations
+    - Implement toast notification system
+    - _Requirements: All CRUD operations_
+
+- [ ] 13. Implement Owner dashboard pages
+  - [ ] 13.1 Implement samiti management page
+    - Create samiti list view with create, edit, delete actions
+    - Implement samiti form modal
+    - Integrate with samiti API endpoints
+    - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5_
+  - [ ] 13.2 Implement distributor management page
+    - Create distributor list view with blocked status indicators
+    - Implement distributor form modal
+    - Integrate with distributor API endpoints
+    - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5_
+  - [ ] 13.3 Implement product management page
+    - Create product list view with create, edit, discontinue actions
+    - Implement product form modal
+    - Integrate with product API endpoints
+    - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5_
+  - [ ] 13.4 Implement vehicle management page
+    - Create vehicle list view with create, edit, delete actions
+    - Implement vehicle form modal with capacity validation
+    - Integrate with vehicle API endpoints
+    - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5_
+  - [ ] 13.5 Implement samiti invoice management page
+    - Create invoice list view with filtering and search
+    - Implement invoice details modal
+    - Add pay invoice action
+    - Integrate with invoice API endpoints
+    - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5_
+
+- [ ] 14. Implement Samiti dashboard pages
+  - [ ] 14.1 Implement milk collection management page
+    - Create collection list view with filtering
+    - Implement collection form modal with farmer selection and pricing calculation
+    - Integrate with milk collection API endpoints
+    - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5_
+  - [ ] 14.2 Implement invoice generation page
+    - Create invoice list view
+    - Implement invoice generation form with period selection
+    - Show invoice details and status
+    - Integrate with invoice API endpoints
+    - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5_
+  - [ ] 14.3 Implement farmer payout management page
+    - Create payout list view
+    - Implement payout creation form with farmer and period selection
+    - Add mark as paid action
+    - Integrate with payout API endpoints
+    - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.5_
+
+- [ ] 15. Implement Farmer dashboard pages
+  - [ ] 15.1 Implement collection history page
+    - Create collection list view with date filtering
+    - Implement daily and monthly summary views
+    - Show collection details with pricing breakdown
+    - Integrate with farmer collection API endpoints
+    - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.5_
+  - [ ] 15.2 Implement payment history page
+    - Create payout list view with status filtering
+    - Implement payout details modal
+    - Show account summary with totals
+    - Implement weekly summary view
+    - Integrate with farmer payout API endpoints
+    - _Requirements: 10.1, 10.2, 10.3, 10.4, 10.5_
+
+- [ ] 16. Implement Distributor dashboard pages
+  - [ ] 16.1 Implement product catalog and order creation page
+    - Create product catalog view
+    - Implement order form with product selection and quantity inputs
+    - Show order total calculation
+    - Handle credit blocking with error display
+    - Integrate with distributor order API endpoints
+    - _Requirements: 11.1, 11.2, 11.3, 11.4, 11.5_
+  - [ ] 16.2 Implement order history page
+    - Create order list view with status filtering
+    - Implement order details modal
+    - Show monthly summary
+    - Integrate with distributor order API endpoints
+    - _Requirements: 12.1, 12.2, 12.3, 12.4, 12.5_
+  - [ ] 16.3 Implement payment page
+    - Create due payments list view
+    - Implement payment form with amount validation
+    - Show payment confirmation
+    - Integrate with payment API endpoints
+    - _Requirements: 13.1, 13.2, 13.3, 13.4, 13.5_
+
+- [ ] 17. Implement Logistics dashboard pages
+  - [ ] 17.1 Implement pending orders page
+    - Create pending orders list view with filtering and sorting
+    - Show order weight calculations
+    - Implement order details modal
+    - Integrate with logistics order API endpoints
+    - _Requirements: 14.1, 14.2, 14.3, 14.4, 14.5_
+  - [ ] 17.2 Implement vehicle assignment page
+    - Create vehicle list view with capacity and utilization
+    - Implement assignment form with capacity validation
+    - Show assignment confirmation
+    - Add unassign action
+    - Integrate with assignment API endpoints
+    - _Requirements: 15.1, 15.2, 15.3, 15.4, 15.5_
+  - [ ] 17.3 Implement fleet utilization page
+    - Create vehicle list view with utilization filtering
+    - Implement vehicle details modal with assignment history
+    - Show daily summary
+    - Integrate with utilization API endpoints
+    - _Requirements: 16.1, 16.2, 16.3, 16.4, 16.5_
+
+- [ ] 18. Implement authentication and navigation
+  - [ ] 18.1 Update authentication logic for role validation
+    - Update login API to validate role matches login page
+    - Implement session persistence
+    - Add logout functionality
+    - _Requirements: 17.2, 17.3, 17.4, 17.5_
+  - [ ] 18.2 Write property tests for authentication
+    - **Property 59: Role-matched authentication**
+    - **Property 60: Invalid credentials rejection**
+    - **Property 61: Role mismatch prevention**
+    - **Property 62: Post-authentication redirect**
+    - **Validates: Requirements 17.2, 17.3, 17.4, 17.5**
+  - [ ] 18.3 Implement navigation and route protection
+    - Add active navigation highlighting
+    - Implement route guards for authentication
+    - Add session persistence on refresh
+    - _Requirements: 18.1, 18.2, 18.3, 18.4, 18.5_
+  - [ ] 18.4 Write property tests for navigation
+    - **Property 63: Active navigation highlighting**
+    - **Property 64: Unauthenticated access prevention**
+    - **Property 65: Logout session clearing**
+    - **Property 66: Session persistence on refresh**
+    - **Validates: Requirements 18.2, 18.3, 18.4, 18.5**
+
+- [ ] 19. Implement data validation
+  - [ ] 19.1 Add FAT/SNF validation to milk collection
+    - Implement validation for FAT and SNF ranges
+    - Add error messages for invalid values
+    - _Requirements: 19.3_
+  - [ ] 19.2 Write property tests for validation
+    - **Property 67: FAT/SNF validation**
+    - **Property 68: Pricing formula immutability**
+    - **Property 69: Blocked distributor display**
+    - **Validates: Requirements 19.3, 19.4, 20.4**
+
+- [ ] 20. Final checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
