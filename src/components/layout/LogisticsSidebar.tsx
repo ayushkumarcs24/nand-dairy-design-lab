@@ -1,45 +1,61 @@
-import { Truck, Map, Users, BarChart3 } from "lucide-react";
+import { Bell, Home, Map, Truck, Package } from "lucide-react";
 import { NavLink } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 
 const LogisticsSidebar = () => {
-  const navLinkClasses = ({ isActive }: { isActive: boolean }) =>
-    `flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-all hover:bg-indigo-50 hover:text-indigo-700 ${
-      isActive ? "bg-indigo-50 text-indigo-700" : "text-slate-600"
+  const navLinkClasses = (
+    {
+      isActive,
+    }: {
+      isActive: boolean;
+    }
+  ) => `flex items-center gap-3 rounded-lg px-3 py-2 text-gray-900 transition-all hover:text-gray-900 dark:text-gray-50 dark:hover:text-gray-50 ${isActive ? "bg-gray-100 dark:bg-gray-800" : "text-gray-500"
     }`;
 
   return (
-    <aside className="hidden md:block h-screen bg-white/80 backdrop-blur-xl rounded-r-3xl shadow-xl border border-indigo-50">
-      <div className="flex flex-col h-full">
-        <div className="flex items-center gap-3 px-6 py-6 border-b border-slate-100/80">
-          <div className="h-9 w-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center text-sm font-semibold">
-            ND
+    <div className="hidden border-r bg-gray-50 lg:block dark:bg-gray-900/40">
+      <div className="flex h-full max-h-screen flex-col justify-between">
+        <div className="flex flex-col gap-2">
+          <div className="flex h-[72px] items-center border-b bg-white/70 px-6 backdrop-blur-sm dark:bg-gray-900/60">
+            <NavLink to="/logistics/dashboard" className="flex items-center gap-2 font-semibold">
+              <Truck className="h-6 w-6 text-blue-500" />
+              <div className="flex flex-col leading-tight">
+                <span className="text-sm text-gray-500">Nand Dairy</span>
+                <span className="text-base font-semibold">Logistics</span>
+              </div>
+            </NavLink>
+            <Button variant="outline" size="icon" className="ml-auto h-8 w-8 rounded-full">
+              <Bell className="h-4 w-4" />
+              <span className="sr-only">Toggle notifications</span>
+            </Button>
           </div>
-          <div className="flex flex-col">
-            <span className="text-sm font-semibold text-slate-900">Nand Dairy</span>
-            <span className="text-xs text-slate-500">Logistics</span>
+          <div className="flex-1 overflow-auto py-4">
+            <nav className="grid items-start gap-1 px-4 text-sm font-medium">
+              <NavLink to="/logistics/dashboard" className={navLinkClasses}>
+                <Home className="h-4 w-4" />
+                Dashboard
+              </NavLink>
+              <NavLink to="/logistics/vehicles" className={navLinkClasses}>
+                <Truck className="h-4 w-4" />
+                Vehicles
+              </NavLink>
+              <NavLink to="/logistics/routes" className={navLinkClasses}>
+                <Map className="h-4 w-4" />
+                Routes
+              </NavLink>
+              <NavLink to="/logistics/dispatches" className={navLinkClasses}>
+                <Package className="h-4 w-4" />
+                Dispatches
+              </NavLink>
+            </nav>
           </div>
         </div>
-
-        <nav className="flex-1 px-3 py-4 space-y-1 text-sm">
-          <NavLink to="/logistics/dashboard" className={navLinkClasses}>
-            <Truck className="h-4 w-4" />
-            <span>Vehicle Dispatch</span>
-          </NavLink>
-          <NavLink to="#" className={navLinkClasses}>
-            <Map className="h-4 w-4" />
-            <span>Route Planning</span>
-          </NavLink>
-          <NavLink to="#" className={navLinkClasses}>
-            <Users className="h-4 w-4" />
-            <span>Distributors</span>
-          </NavLink>
-          <NavLink to="#" className={navLinkClasses}>
-            <BarChart3 className="h-4 w-4" />
-            <span>Reports</span>
-          </NavLink>
-        </nav>
+        <div className="border-t bg-white/60 px-4 py-4 text-xs text-gray-500 dark:bg-gray-900/80">
+          <p className="font-medium text-gray-700 dark:text-gray-200">Profile</p>
+          <p className="text-gray-400">Logistics Manager</p>
+        </div>
       </div>
-    </aside>
+    </div>
   );
 };
 

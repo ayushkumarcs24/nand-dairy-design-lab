@@ -1,54 +1,85 @@
 import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { api } from "@/lib/api";
 import Sidebar from "@/components/layout/Sidebar";
-import FarmerMobile from "@/components/layout/FarmerMobile";
-import FarmerDesktop from "@/components/layout/FarmerDesktop";
-import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DataTable } from "@/components/ui/data-table";
+import { DataTableColumnHeader } from "@/components/ui/data-table-column-header";
 import { Button } from "@/components/ui/button";
-import { motion } from "framer-motion";
-import { createMilkEntry } from "@/lib/api";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
+import { ColumnDef } from "@tanstack/react-table";
+import { format } from "date-fns";
+import { Droplet, TrendingUp, IndianRupee } from "lucide-react";
 
-const FarmerDailyEntry = () => {
+interface MilkCollection {
+  id: number;
+  quantityLitre: number;
+  fat: number;
+  snf: number;
+  totalAmount: number;
+  collectionDate: string;
+  shift: "MORNING" | "EVENING";
+}
+
+export default function FarmerDailyEntry() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [session, setSession] = useState<"MORNING" | "EVENING">("MORNING");
   const [quantity, setQuantity] = useState("");
   const [fat, setFat] = useState("");
   const [snf, setSnf] = useState("");
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
 
-  const mutation = useMutation({
-    mutationFn: createMilkEntry,
+  const { data: collections = [], isLoading } = useQuery<MilkCollection[]>({
+    queryKey: ["farmer-collections"],
+    queryFn: async () => {
+      const res = await api.get<MilkCollection[]>("/farmer/collections");
+      return res.data;
+    },
+  });
+
+  const createMutation = useMutation({
+    mutationFn: async (data: {
+      session: "MORNING" | "EVENING";
+      quantityLitre: number;
+      fat: number;
+      snf: number;
+    }) => {
+      await api.post("/farmer/collections", data);
+    },
     onSuccess: () => {
-      toast({ title: "Entry submitted", description: "Your milk data has been recorded." });
+      toast({ title: "Milk entry recorded successfully" });
       setQuantity("");
       setFat("");
       setSnf("");
       queryClient.invalidateQueries({ queryKey: ["farmer-dashboard-summary"] });
+      queryClient.invalidateQueries({ queryKey: ["farmer-collections"] });
     },
-    onError: (error: unknown) => {
-      const message = error instanceof Error ? error.message : "Something went wrong";
-      toast({ title: "Could not submit entry", description: message, variant: "destructive" });
+    onError: (error: any) => {
+      toast({ title: "Failed to record entry", description: error.message, variant: "destructive" });
     },
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const qty = parseFloat(quantity);
+    const fatVal = parseFloat(fat);
+    const snfVal = parseFloat(snf);
 
-    const qty = Number(quantity);
-    const fatVal = Number(fat);
-    const snfVal = Number(snf);
-
-    if (!qty || qty <= 0 || !fatVal || !snfVal) {
-      toast({
-        title: "Invalid input",
-        description: "Please enter quantity, FAT and SNF values.",
-        variant: "destructive",
-      });
+    if (!qty || !fatVal || !snfVal) {
+      toast({ title: "Please fill all fields correctly", variant: "destructive" });
       return;
     }
 
-    mutation.mutate({
+    createMutation.mutate({
       session,
       quantityLitre: qty,
       fat: fatVal,
@@ -56,146 +87,167 @@ const FarmerDailyEntry = () => {
     });
   };
 
+  const columns: ColumnDef<MilkCollection>[] = [
+    {
+      accessorKey: "collectionDate",
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Date" />,
+      cell: ({ row }) => format(new Date(row.original.collectionDate), "MMM d, yyyy"),
+    },
+    {
+      accessorKey: "shift",
+      header: "Shift",
+      cell: ({ row }) => (
+        <span className={row.original.shift === "MORNING" ? "text-orange-500" : "text-blue-500"}>
+          {row.original.shift}
+        </span>
+      ),
+    },
+    {
+      accessorKey: "quantityLitre",
+      header: "Qty (L)",
+    },
+    {
+      accessorKey: "fat",
+      header: "FAT",
+    },
+    {
+      accessorKey: "snf",
+      header: "SNF",
+    },
+    {
+      accessorKey: "totalAmount",
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Amount (₹)" />,
+      cell: ({ row }) => `₹${row.original.totalAmount.toFixed(2)}`,
+    },
+  ];
+
+  const totalMilk = collections.reduce((sum, c) => sum + c.quantityLitre, 0);
+  const totalAmount = collections.reduce((sum, c) => sum + c.totalAmount, 0);
+  const avgFat = collections.length ? collections.reduce((sum, c) => sum + c.fat, 0) / collections.length : 0;
+
   return (
-    <div className="grid min-h-screen w-full lg:grid-cols-[280px_1fr] bg-[#f5f7fb]">
+    <div className="flex min-h-screen w-full bg-gray-50/50 dark:bg-gray-900/50">
       <Sidebar />
-      <div className="flex flex-col max-h-screen overflow-hidden">
-        <FarmerMobile />
-        <FarmerDesktop />
-        <main className="flex-1 overflow-y-auto p-4 md:p-8 lg:p-12">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4 }}
-            className="mx-auto flex max-w-6xl flex-col gap-8 lg:flex-row"
-          >
-            <section className="flex-1">
-              <header className="mb-6">
-                <p className="text-sm font-medium text-blue-500">Nand Dairy · Farmer Portal</p>
-                <h1 className="mt-1 text-3xl font-bold text-slate-900 md:text-4xl">
-                  Daily Milk Entry
-                </h1>
-                <p className="mt-2 text-sm text-slate-500">
-                  Enter today's collection data to see your earnings and quality insights instantly.
+      <div className="flex flex-1 flex-col">
+        <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
+          <div className="flex items-center gap-4">
+            <h1 className="font-semibold text-lg md:text-2xl">Daily Milk Entries</h1>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Milk (This Month)</CardTitle>
+                <Droplet className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{totalMilk.toFixed(1)} L</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Earnings</CardTitle>
+                <IndianRupee className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">₹{totalAmount.toFixed(2)}</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Avg FAT</CardTitle>
+                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{avgFat.toFixed(1)}</div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+            <section className="lg:col-span-2">
+              <div className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-100">
+                <h2 className="text-lg font-semibold text-slate-800">New Milk Entry</h2>
+                <p className="mt-1 text-sm text-slate-500">
+                  Record today's milk collection details.
                 </p>
-              </header>
 
-              <div className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-100 md:p-8">
-              <div className="mb-6 flex rounded-full bg-slate-50 p-1 text-sm font-medium text-slate-500">
-                  <button
-                    type="button"
-                    onClick={() => setSession("MORNING")}
-                    className={`flex-1 rounded-full px-4 py-2 transition-all ${
-                      session === "MORNING" ? "bg-white text-slate-900 shadow-sm" : "hover:text-slate-700"
-                    }`}
-                  >
-                    Morning
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setSession("EVENING")}
-                    className={`flex-1 rounded-full px-4 py-2 transition-all ${
-                      session === "EVENING" ? "bg-white text-slate-900 shadow-sm" : "hover:text-slate-700"
-                    }`}
-                  >
-                    Evening
-                  </button>
-                </div>
-
-                <form onSubmit={handleSubmit} className="space-y-5">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-slate-700" htmlFor="quantity">
-                      Milk Quantity (Liters)
-                    </label>
-                    <Input
-                      id="quantity"
-                      type="number"
-                      min="0"
-                      step="0.1"
-                      value={quantity}
-                      onChange={(e) => setQuantity(e.target.value)}
-                      placeholder="e.g., 25.5"
-                      className="h-11 rounded-xl border-slate-200 bg-slate-50/60 text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:ring-blue-200"
-                    />
+                <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+                  <div>
+                    <Label htmlFor="session" className="mb-2 block text-sm font-medium text-slate-700">
+                      Session
+                    </Label>
+                    <Select
+                      value={session}
+                      onValueChange={(val: "MORNING" | "EVENING") => setSession(val)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select session" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="MORNING">Morning</SelectItem>
+                        <SelectItem value="EVENING">Evening</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
 
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-slate-700" htmlFor="fat">
-                        FAT %
-                      </label>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                    <div>
+                      <Label htmlFor="quantity">Quantity (L)</Label>
+                      <Input
+                        id="quantity"
+                        type="number"
+                        step="0.1"
+                        value={quantity}
+                        onChange={(e) => setQuantity(e.target.value)}
+                        placeholder="0.0"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="fat">FAT (%)</Label>
                       <Input
                         id="fat"
                         type="number"
-                        min="0"
                         step="0.1"
                         value={fat}
                         onChange={(e) => setFat(e.target.value)}
-                        placeholder="e.g., 4.2"
-                        className="h-11 rounded-xl border-slate-200 bg-slate-50/60 text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:ring-blue-200"
+                        placeholder="0.0"
                       />
                     </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-slate-700" htmlFor="snf">
-                        SNF %
-                      </label>
+                    <div>
+                      <Label htmlFor="snf">SNF (%)</Label>
                       <Input
                         id="snf"
                         type="number"
-                        min="0"
                         step="0.1"
                         value={snf}
                         onChange={(e) => setSnf(e.target.value)}
-                        placeholder="e.g., 8.5"
-                        className="h-11 rounded-xl border-slate-200 bg-slate-50/60 text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:ring-blue-200"
+                        placeholder="0.0"
                       />
                     </div>
                   </div>
 
-                  <Button
-                    type="submit"
-                    disabled={mutation.isPending}
-                    className="mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#008cff] text-sm font-semibold text-white shadow-md shadow-blue-200 transition hover:bg-[#0074d9] hover:shadow-lg disabled:opacity-60 disabled:cursor-not-allowed"
-                  >
-                    <span className="text-base">▶</span>
-                    <span>{mutation.isPending ? "Submitting..." : "Submit Data"}</span>
-                  </Button>
+                  <div className="pt-2">
+                    <Button type="submit" className="w-full" disabled={createMutation.isPending}>
+                      {createMutation.isPending ? "Recording..." : "Record Entry"}
+                    </Button>
+                  </div>
                 </form>
               </div>
             </section>
+          </div>
 
-            <aside className="mt-4 w-full space-y-4 lg:mt-10 lg:w-80">
-              <div className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-100">
-                <h2 className="text-sm font-semibold text-slate-700">Today's Analysis &amp; Earnings</h2>
-                <div className="mt-4 grid grid-cols-2 gap-3">
-                  <div className="flex flex-col items-center justify-center rounded-2xl bg-slate-50 p-4">
-                    <span className="text-xs font-medium text-slate-500">FAT</span>
-                    <span className="mt-1 text-2xl font-bold text-slate-900">4.2%</span>
-                  </div>
-                  <div className="flex flex-col items-center justify-center rounded-2xl bg-slate-50 p-4">
-                    <span className="text-xs font-medium text-slate-500">SNF</span>
-                    <span className="mt-1 text-2xl font-bold text-slate-900">8.5%</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="rounded-3xl bg-[#fef7e8] p-6 shadow-sm ring-1 ring-amber-100">
-                <p className="text-xs font-medium uppercase tracking-wide text-amber-700">
-                  Today's Earnings
-                </p>
-                <p className="mt-3 text-4xl font-extrabold text-[#008cff]">
-                  ₹918
-                </p>
-                <p className="mt-1 text-xs text-amber-700/80">
-                  Based on today's milk quantity and quality. Actual payout may vary.
-                </p>
-              </div>
-            </aside>
-          </motion.div>
+          <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
+            <div className="p-6">
+              {isLoading ? (
+                <div>Loading...</div>
+              ) : (
+                <DataTable columns={columns} data={collections} searchKey="shift" searchPlaceholder="Search..." />
+              )}
+            </div>
+          </div>
         </main>
       </div>
     </div>
   );
-};
-
-export default FarmerDailyEntry;
+}

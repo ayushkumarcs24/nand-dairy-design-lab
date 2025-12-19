@@ -83,6 +83,8 @@ model Samiti {
   farmers      Farmer[]
   milkEntries  MilkEntry[]
   monthlyTotal SamitiMonthlyTotal[]
+  invoices     SamitiInvoice[]
+  payouts      FarmerPayout[]
 }
 
 model Farmer {
@@ -93,6 +95,7 @@ model Farmer {
   samiti      Samiti      @relation(fields: [samitiId], references: [id])
   samitiId    Int
   milkEntries MilkEntry[]
+  payouts     FarmerPayout[]
 }
 
 model FatSnfValue {
@@ -150,7 +153,51 @@ model Product {
   owner   OwnerAdmin        @relation(fields: [ownerId], references: [id])
   ownerId Int
 
-  orders  DistributorOrder[]
+  orderItems OrderItem[]
+}
+
+
+model SamitiInvoice {
+  id          Int       @id @default(autoincrement())
+  invoiceNumber String  @unique
+  startDate   DateTime
+  endDate     DateTime
+  totalAmount Float
+  status      PaymentStatus @default(UNPAID)
+  createdAt   DateTime  @default(now())
+  paidAt      DateTime?
+
+  samiti      Samiti    @relation(fields: [samitiId], references: [id])
+  samitiId    Int
+}
+
+model FarmerPayout {
+  id          Int       @id @default(autoincrement())
+  payoutNumber String   @unique
+  startDate   DateTime
+  endDate     DateTime
+  totalAmount Float
+  status      PaymentStatus @default(UNPAID)
+  createdAt   DateTime  @default(now())
+  paidAt      DateTime?
+
+  farmer      Farmer    @relation(fields: [farmerId], references: [id])
+  farmerId    Int
+  samiti      Samiti    @relation(fields: [samitiId], references: [id])
+  samitiId    Int
+}
+
+model OrderItem {
+  id          Int       @id @default(autoincrement())
+  quantity    Int
+  price       Float
+  totalPrice  Float
+
+  order       DistributorOrder @relation(fields: [orderId], references: [id])
+  orderId     Int
+
+  product     Product   @relation(fields: [productId], references: [id])
+  productId   Int
 }
 
 model DistributorOrder {
@@ -158,17 +205,15 @@ model DistributorOrder {
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
   status        OrderStatus   @default(PENDING)
-  quantity      Int
   totalAmount   Float
 
   distributor   User          @relation("DistributorUserOrders", fields: [distributorId], references: [id])
   distributorId Int
 
-  product   Product          @relation(fields: [productId], references: [id])
-  productId Int
+  items         OrderItem[]
 
-  payments  DistributorPayment[]
-  dispatches LogisticsDispatch[]
+  payments      DistributorPayment[]
+  dispatches    LogisticsDispatch[]
 }
 
 model DistributorPayment {
@@ -236,3 +281,4 @@ model Notification {
   user   User @relation(fields: [userId], references: [id])
   userId Int
 }
+

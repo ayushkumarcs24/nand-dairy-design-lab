@@ -88,7 +88,7 @@ logisticsRouter.put("/dispatch/:id/status", async (req, res) => {
 logisticsRouter.get("/dispatches", async (_req, res) => {
   const dispatches = await prisma.logisticsDispatch.findMany({
     include: {
-      order: { include: { product: true, distributor: true } },
+      order: { include: { items: { include: { product: true } }, distributor: true } },
       vehicle: true,
       route: true,
     },
@@ -96,4 +96,88 @@ logisticsRouter.get("/dispatches", async (_req, res) => {
   });
 
   res.json(dispatches);
+});
+// GET /api/logistics/pending-orders
+logisticsRouter.get("/pending-orders", async (_req, res) => {
+  // Find orders that are APPROVED but not yet dispatched/assigned
+  // Or maybe just all orders that don't have a dispatch record?
+  // For simplicity: Orders with status PENDING or APPROVED that are NOT in any dispatch record
+
+  const orders = await prisma.distributorOrder.findMany({
+    where: {
+      dispatches: {
+        none: {}, // No dispatches
+      },
+      status: { in: ["PENDING", "APPROVED"] },
+    },
+    include: {
+      items: { include: { product: true } },
+      distributor: true,
+    },
+    orderBy: { createdAt: "asc" },
+  });
+
+  // Calculate weight (approximate, 1L = 1kg for now)
+  const result = orders.map(o => {
+    const totalWeight = o.items.reduce((sum, item) => sum + (item.quantity * 1), 0); // Assuming 1kg per unit for simplicity if unit is L
+    return { ...o, totalWeight };
+  });
+
+  res.json(result);
+});
+
+// GET /api/logistics/vehicles/:id
+logisticsRouter.get("/vehicles/:id", async (req, res) => {
+  const id = Number(req.params.id);
+  const vehicle = await prisma.logisticsVehicle.findUnique({
+    where: { id },
+    include: {
+      routes: true,
+      dispatches: {
+        include: { order: true },
+        orderBy: { scheduledDate: "desc" },
+      },
+    },
+  });
+
+  if (!vehicle) return res.status(404).json({ message: "Vehicle not found" });
+  res.json(vehicle);
+});
+
+
+// DELETE /api/logistics/dispatch/:id (Unassign)
+logisticsRouter.delete("/dispatch/:id", async (req, res) => {
+  const id = Number(req.params.id);
+  await prisma.logisticsDispatch.delete({ where: { id } });
+  res.status(204).send();
+});
+
+// GET /api/logistics/utilization
+logisticsRouter.get("/utilization", async (_req, res) => {
+  const vehicles = await prisma.logisticsVehicle.findMany({
+    where: { isActive: true },
+    include: {
+      dispatches: {
+        where: { status: { in: ["PLANNED", "LOADING", "DISPATCHED"] } },
+        include: { order: { include: { items: true } } },
+      },
+    },
+  });
+
+  const utilization = vehicles.map(v => {
+    const currentLoad = v.dispatches.reduce((sum, d) => {
+      const orderWeight = d.order.items.reduce((w, i) => w + i.quantity, 0);
+      return sum + orderWeight;
+    }, 0);
+
+    return {
+      id: v.id,
+      plateNumber: v.plateNumber,
+      capacity: v.capacityLitre,
+      currentLoad,
+      utilizationPercentage: (currentLoad / v.capacityLitre) * 100,
+    };
+  });
+
+  res.json(utilization);
 });

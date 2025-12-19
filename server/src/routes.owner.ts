@@ -95,7 +95,7 @@ ownerRouter.get("/distributors", async (_req, res) => {
     where: { role: Role.DISTRIBUTOR },
     include: {
       distributorOrders: {
-        include: { product: true },
+        include: { items: { include: { product: true } } },
       },
     },
     orderBy: { name: "asc" },
@@ -124,7 +124,7 @@ ownerRouter.get("/orders", async (_req, res) => {
     orderBy: { createdAt: "desc" },
     include: {
       distributor: true,
-      product: true,
+      items: { include: { product: true } },
       payments: true,
       dispatches: true,
     },
@@ -166,4 +166,49 @@ ownerRouter.get("/dashboard-summary", async (_req, res) => {
     orders,
     milkEntries,
   });
+});
+
+// SAMITI INVOICES
+ownerRouter.get("/samiti-invoices", async (req, res) => {
+  const { status, samitiId } = req.query as { status?: string; samitiId?: string };
+
+  const where: any = {};
+  if (status) where.status = status;
+  if (samitiId) where.samitiId = Number(samitiId);
+
+  const invoices = await prisma.samitiInvoice.findMany({
+    where,
+    include: { samiti: true },
+    orderBy: { createdAt: "desc" },
+  });
+
+  res.json(invoices);
+});
+
+ownerRouter.get("/samiti-invoices/:id", async (req, res) => {
+  const id = Number(req.params.id);
+  const invoice = await prisma.samitiInvoice.findUnique({
+    where: { id },
+    include: { samiti: true },
+  });
+
+  if (!invoice) return res.status(404).json({ message: "Invoice not found" });
+  res.json(invoice);
+});
+
+ownerRouter.put("/samiti-invoices/:id/pay", async (req, res) => {
+  const id = Number(req.params.id);
+
+  const invoice = await prisma.samitiInvoice.findUnique({ where: { id } });
+  if (!invoice) return res.status(404).json({ message: "Invoice not found" });
+
+  const updated = await prisma.samitiInvoice.update({
+    where: { id },
+    data: {
+      status: "PAID",
+      paidAt: new Date(),
+    },
+  });
+
+  res.json(updated);
 });

@@ -1,195 +1,195 @@
-import DistributorSidebar from "@/components/layout/DistributorSidebar";
-import DistributorMobile from "@/components/layout/DistributorMobile";
-import DistributorDesktop from "@/components/layout/DistributorDesktop";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { api } from "@/lib/api";
+import { DistributorLayout } from "@/components/layout/DistributorLayout";
+import { DataTable } from "@/components/ui/data-table";
+import { DataTableColumnHeader } from "@/components/ui/data-table-column-header";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { motion } from "framer-motion";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useToast } from "@/components/ui/use-toast";
+import { Plus } from "lucide-react";
+import { ColumnDef } from "@tanstack/react-table";
+import { format } from "date-fns";
 
-const featuredProducts = [
-  {
-    name: "Fresh Milk Pack",
-    description: "Rich and full-cream milk",
-    price: 3.0,
-  },
-  {
-    name: "Malai Paneer",
-    description: "Soft and fresh cottage cheese",
-    price: 6.5,
-  },
-  {
-    name: "Creamy Dahi",
-    description: "Thick and creamy curd",
-    price: 2.5,
-  },
-];
+interface Product {
+  id: number;
+  name: string;
+  price: number;
+}
 
-const catalogueProducts = [
-  {
-    name: "Pure Cow Ghee (500ml)",
-    priceLabel: "$12.50",
-  },
-  {
-    name: "Table Butter (200g)",
-    priceLabel: "$4.00",
-  },
-  {
-    name: "Mango Lassi (1L)",
-    priceLabel: "$5.50",
-  },
-  {
-    name: "Sweet Lassi (1L)",
-    priceLabel: "$4.80",
-  },
-];
+interface OrderItem {
+  id: number;
+  quantity: number;
+  price: number;
+  totalPrice: number;
+  product: Product;
+}
 
-const DistributorOrders = () => {
+interface DistributorOrder {
+  id: number;
+  createdAt: string;
+  status: "PENDING" | "APPROVED" | "SHIPPED" | "DELIVERED" | "CANCELLED";
+  totalAmount: number;
+  items: OrderItem[];
+}
+
+export default function DistributorOrders() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+
+  const { data: orders = [], isLoading } = useQuery<DistributorOrder[]>({
+    queryKey: ["distributor-orders"],
+    queryFn: async () => {
+      const res = await api.get<DistributorOrder[]>("/distributor/orders");
+      return res.data;
+    },
+  });
+
+  const { data: products = [] } = useQuery<Product[]>({
+    queryKey: ["products-list"],
+    queryFn: async () => {
+      const res = await api.get<Product[]>("/distributor/products");
+      return res.data;
+    },
+  });
+
+  const createMutation = useMutation({
+    mutationFn: async (data: { productId: number; quantity: number }) => {
+      await api.post("/distributor/orders", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["distributor-orders"] });
+      setIsCreateOpen(false);
+      toast({ title: "Order placed successfully" });
+    },
+    onError: (error: any) => {
+      toast({ title: "Failed to place order", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const columns: ColumnDef<DistributorOrder>[] = [
+    {
+      accessorKey: "id",
+      header: "Order #",
+      cell: ({ row }) => `#${row.original.id}`,
+    },
+    {
+      accessorKey: "createdAt",
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Date" />,
+      cell: ({ row }) => format(new Date(row.original.createdAt), "MMM d, yyyy"),
+    },
+    {
+      accessorKey: "items",
+      header: "Items",
+      cell: ({ row }) => (
+        <div className="flex flex-col gap-1">
+          {row.original.items.map((item) => (
+            <span key={item.id} className="text-sm">
+              {item.product.name} x {item.quantity}
+            </span>
+          ))}
+        </div>
+      ),
+    },
+    {
+      accessorKey: "totalAmount",
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Total (₹)" />,
+      cell: ({ row }) => `₹${row.original.totalAmount.toFixed(2)}`,
+    },
+    {
+      accessorKey: "status",
+      header: "Status",
+      cell: ({ row }) => {
+        const statusColors = {
+          PENDING: "text-amber-600 bg-amber-50",
+          APPROVED: "text-blue-600 bg-blue-50",
+          SHIPPED: "text-purple-600 bg-purple-50",
+          DELIVERED: "text-green-600 bg-green-50",
+          CANCELLED: "text-red-600 bg-red-50",
+        };
+        return (
+          <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColors[row.original.status]}`}>
+            {row.original.status}
+          </span>
+        );
+      },
+    },
+  ];
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    createMutation.mutate({
+      productId: Number(formData.get("productId")),
+      quantity: Number(formData.get("quantity")),
+    });
+  };
+
   return (
-    <div className="grid min-h-screen w-full md:grid-cols-[260px_1fr] bg-[#FFF9F0]">
-      <DistributorSidebar />
-      <div className="flex flex-col max-h-screen overflow-hidden">
-        <DistributorMobile />
-        <DistributorDesktop />
-        <main className="flex-1 overflow-y-auto p-4 md:p-8 lg:p-10">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4 }}
-            className="mx-auto flex max-w-6xl flex-col gap-8"
-          >
-            <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
-              <div>
-                <h2 className="text-3xl md:text-4xl font-semibold text-slate-900">
-                  Create Your Next Order
-                </h2>
-                <p className="mt-2 text-slate-500 text-sm md:text-base max-w-xl">
-                  Select from our premium range of dairy products.
-                </p>
-              </div>
-            </div>
-
-            <div className="grid gap-8 lg:grid-cols-[minmax(0,2fr)_minmax(0,1.1fr)] items-start">
-              {/* Left column: featured cards & catalogue */}
-              <div className="space-y-8">
-                <section className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  {featuredProducts.map((product) => (
-                    <div
-                      key={product.name}
-                      className="rounded-2xl bg-white shadow-sm border border-amber-50 flex flex-col overflow-hidden"
-                    >
-                      <div className="h-36 bg-gradient-to-br from-amber-100 via-white to-amber-50" />
-                      <div className="p-4 flex flex-col gap-2 flex-1">
-                        <div>
-                          <p className="text-sm font-semibold text-slate-900">
-                            {product.name}
-                          </p>
-                          <p className="text-xs text-slate-500">
-                            {product.description}
-                          </p>
-                        </div>
-                        <Button
-                          size="sm"
-                          className="mt-auto rounded-full bg-[#E5B75C] hover:bg-[#d5a84e] text-slate-900 text-xs font-semibold"
-                        >
-                          Add to Cart
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </section>
-
-                <section className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-semibold text-slate-900">
-                      Full Product Catalogue
-                    </h3>
-                  </div>
-                  <div className="relative max-w-md">
-                    <Input
-                      placeholder="Search by product name..."
-                      className="bg-white border border-amber-100 shadow-sm text-sm"
-                    />
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
-                    {catalogueProducts.map((product) => (
-                      <div
-                        key={product.name}
-                        className="rounded-2xl bg-white border border-amber-50 p-4 flex flex-col gap-2"
-                      >
-                        <div className="h-28 rounded-xl bg-amber-50 mb-2" />
-                        <p className="text-sm font-semibold text-slate-900">
-                          {product.name}
-                        </p>
-                        <p className="text-xs text-amber-600 font-medium">
-                          {product.priceLabel}
-                        </p>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="mt-auto rounded-full border-amber-200 text-xs"
-                        >
-                          Add to Cart
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                </section>
-              </div>
-
-              {/* Right column: order summary */}
-              <aside className="rounded-2xl bg-white border border-amber-50 shadow-sm p-6 space-y-6">
-                <div>
-                  <h3 className="text-lg font-semibold text-slate-900">Your Order</h3>
-                  <p className="text-xs text-slate-500 mt-1">
-                    Review quantities and pricing before placing the order.
-                  </p>
+    <DistributorLayout>
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <h1 className="text-3xl font-bold tracking-tight">My Orders</h1>
+          <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" /> New Order
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Place New Order</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="productId">Product</Label>
+                  <Select name="productId" required>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select product" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {products.map((product) => (
+                        <SelectItem key={product.id} value={String(product.id)}>
+                          {product.name} - ₹{product.price}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-
-                <div className="space-y-4 text-sm">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium text-slate-900">Fresh Milk Pack</p>
-                      <p className="text-xs text-slate-500">Qty: 2</p>
-                    </div>
-                    <p className="font-semibold text-slate-900">$3.00</p>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium text-slate-900">Malai Paneer</p>
-                      <p className="text-xs text-slate-500">Qty: 1</p>
-                    </div>
-                    <p className="font-semibold text-slate-900">$6.50</p>
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="quantity">Quantity</Label>
+                  <Input id="quantity" name="quantity" type="number" min="1" required />
                 </div>
-
-                <div className="border-t border-slate-100 pt-4 space-y-2 text-sm">
-                  <div className="flex items-center justify-between text-slate-600">
-                    <span>Subtotal</span>
-                    <span>$9.50</span>
-                  </div>
-                  <div className="flex items-center justify-between text-slate-600">
-                    <span>Taxes</span>
-                    <span>$0.85</span>
-                  </div>
-                  <div className="flex items-center justify-between text-slate-600">
-                    <span>Pending Dues</span>
-                    <span>$55.00</span>
-                  </div>
-                  <div className="flex items-center justify-between font-semibold text-slate-900 text-base mt-2">
-                    <span>Total</span>
-                    <span>$65.35</span>
-                  </div>
-                </div>
-
-                <Button className="w-full rounded-full bg-[#E5B75C] hover:bg-[#d5a84e] text-slate-900 font-semibold">
-                  Place Order
+                <Button type="submit" className="w-full" disabled={createMutation.isPending}>
+                  {createMutation.isPending ? "Placing Order..." : "Place Order"}
                 </Button>
-              </aside>
-            </div>
-          </motion.div>
-        </main>
-      </div>
-    </div>
-  );
-};
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
 
-export default DistributorOrders;
+        {isLoading ? (
+          <div>Loading...</div>
+        ) : (
+          <DataTable columns={columns} data={orders} searchKey="id" searchPlaceholder="Search order ID..." />
+        )}
+      </div>
+    </DistributorLayout>
+  );
+}

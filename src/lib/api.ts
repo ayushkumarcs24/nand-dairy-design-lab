@@ -134,3 +134,11 @@ export interface OwnerDistributorSummary {
 export async function getOwnerDistributors(): Promise<OwnerDistributorSummary[]> {
   return apiFetch<OwnerDistributorSummary[]>("/owner/distributors", { method: "GET" });
 }
+
+// Helper object for generic API calls
+export const api = {
+  get: <T>(url: string) => apiFetch<T>(url, { method: "GET" }).then(data => ({ data })),
+  post: <T>(url: string, body: any) => apiFetch<T>(url, { method: "POST", body: JSON.stringify(body) }).then(data => ({ data })),
+  put: <T>(url: string, body?: any) => apiFetch<T>(url, { method: "PUT", body: body ? JSON.stringify(body) : undefined }).then(data => ({ data })),
+  delete: <T>(url: string) => apiFetch<T>(url, { method: "DELETE" }).then(data => ({ data })),
+};
