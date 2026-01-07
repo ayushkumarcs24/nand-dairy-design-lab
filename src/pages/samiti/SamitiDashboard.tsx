@@ -1,193 +1,488 @@
+import { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { api } from "@/lib/api";
+import { SamitiLayout } from "@/components/layout/SamitiLayout";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { useToast } from "@/components/ui/use-toast";
+import { Plus, Calculator, TrendingUp, Users, Milk, IndianRupee, ArrowUpRight, Sunrise, Sunset } from "lucide-react";
 import { motion } from "framer-motion";
-import { ChevronDown, Download, ArrowUpRight } from "lucide-react";
+import { SamitiAlerts } from "@/components/SamitiAlerts";
 
-const days = [
-  1, 2, 3, 4, 5,
-  6, 7, 8, 9, 10,
-  11, 12, 13, 14, 15,
-  16, 17, 18, 19, 20,
-  21, 22, 23, 24, 25,
-  26, 27, 28, 29, 30, 31,
-];
+interface Farmer {
+  id: number;
+  farmerCode: string;
+  user: {
+    name: string;
+    email: string;
+  };
+}
 
-const weeklyTabs = ["W1", "W2", "W3", "W4"];
+interface DailySummary {
+  date: string;
+  totalLitres: number;
+  totalAmount: number;
+  avgFat: number;
+  avgSnf: number;
+  entriesCount: number;
+}
 
-const topProducers = [
-  { name: "Ramesh Patel", volume: "4,210 Ltr" },
-  { name: "Vikram Singh", volume: "3,985 Ltr" },
-  { name: "Priya Devi", volume: "3,850 Ltr" },
-  { name: "Arjun Kumar", volume: "3,760 Ltr" },
-];
+interface MonthlyPayout {
+  farmerId: number;
+  farmerCode: string;
+  farmerName: string;
+  farmerEmail: string;
+  totalLitres: number;
+  totalAmount: number;
+  avgFat: number;
+  avgSnf: number;
+  entriesCount: number;
+}
 
-const SamitiDashboard = () => {
+interface Totals {
+  month: number;
+  year: number;
+  totalOwedToFarmers: number;
+  totalFromDairy: number;
+  pendingPayouts: number;
+}
+
+export default function SamitiDashboard() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [isAddEntryOpen, setIsAddEntryOpen] = useState(false);
+
+  // Form states for price calculation
+  const [fat, setFat] = useState<string>("");
+  const [snf, setSnf] = useState<string>("");
+  const [qty, setQty] = useState<string>("");
+  const [calculatedPrice, setCalculatedPrice] = useState<{ pricePerLitre: number; totalAmount: number } | null>(null);
+
+  // Fetch farmers
+  const { data: farmers = [] } = useQuery<Farmer[]>({
+    queryKey: ["samiti-farmers"],
+    queryFn: async () => {
+      const res = await api.get<Farmer[]>("/samiti/farmers");
+      return res.data;
+    },
+  });
+
+  // Fetch daily summary
+  const { data: dailySummary } = useQuery<DailySummary>({
+    queryKey: ["samiti-daily-summary"],
+    queryFn: async () => {
+      const res = await api.get<DailySummary>("/samiti/summary/daily");
+      return res.data;
+    },
+    refetchInterval: 30000, // Auto-refresh every 30 seconds
+  });
+
+  // Fetch monthly payouts
+  const { data: monthlyPayouts } = useQuery<{ month: number; year: number; farmers: MonthlyPayout[] }>({
+    queryKey: ["samiti-monthly-payouts"],
+    queryFn: async () => {
+      const res = await api.get<{ month: number; year: number; farmers: MonthlyPayout[] }>("/samiti/summary/monthly-payouts");
+      return res.data;
+    },
+    refetchInterval: 30000, // Auto-refresh every 30 seconds
+  });
+
+  // Fetch totals
+  const { data: totals } = useQuery<Totals>({
+    queryKey: ["samiti-totals"],
+    queryFn: async () => {
+      const res = await api.get<Totals>("/samiti/summary/totals");
+      return res.data;
+    },
+    refetchInterval: 30000, // Auto-refresh every 30 seconds
+  });
+
+  // Auto-calculate price effect
+  useEffect(() => {
+    const calculate = async () => {
+      if (!fat || !snf || !qty) return;
+      try {
+        const res = await api.post<{ pricePerLitre: number; totalAmount: number }>("/samiti/calculate-price", {
+          fat: Number(fat),
+          snf: Number(snf),
+          quantityLitre: Number(qty),
+        });
+        setCalculatedPrice(res.data);
+      } catch (e) {
+        console.error("Calculation failed", e);
+      }
+    };
+
+    const timer = setTimeout(calculate, 500);
+    return () => clearTimeout(timer);
+  }, [fat, snf, qty]);
+
+  // Create milk entry mutation
+  const createEntryMutation = useMutation({
+    mutationFn: async (data: any) => {
+      await api.post("/samiti/milk-collections", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["samiti-daily-summary"] });
+      queryClient.invalidateQueries({ queryKey: ["samiti-monthly-payouts"] });
+      queryClient.invalidateQueries({ queryKey: ["samiti-totals"] });
+      queryClient.invalidateQueries({ queryKey: ["samiti-alerts"] });
+      setIsAddEntryOpen(false);
+      resetForm();
+      toast({ title: "✅ Milk entry recorded successfully" });
+    },
+    onError: (error: any) => {
+      toast({ title: "Failed to record entry", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const resetForm = () => {
+    setFat("");
+    setSnf("");
+    setQty("");
+    setCalculatedPrice(null);
+  };
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const data = {
+      farmerId: Number(formData.get("farmerId")),
+      quantityLitre: Number(formData.get("quantityLitre")),
+      fat: Number(formData.get("fat")),
+      snf: Number(formData.get("snf")),
+      session: formData.get("session"),
+      date: new Date().toISOString(),
+    };
+    createEntryMutation.mutate(data);
+  };
+
+  const monthName = new Date(0, (monthlyPayouts?.month || 1) - 1).toLocaleString('default', { month: 'long' });
+
   return (
-    <div className="min-h-screen w-full bg-[#FFF9ED] text-[#1F2933]">
-      {/* Top navigation */}
-      <header className="mx-auto flex max-w-6xl items-center justify-between px-4 pt-6 pb-4">
-        <div className="flex items-center gap-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-black text-white text-sm font-semibold">
-            ND
-          </div>
-          <span className="text-base font-semibold tracking-tight">Nand Dairy</span>
-        </div>
-        <nav className="hidden items-center gap-8 text-sm text-neutral-500 md:flex">
-          <button className="text-neutral-900 font-medium">Dashboard</button>
-          <button className="hover:text-neutral-900">Reports</button>
-          <button className="hover:text-neutral-900">Profile</button>
-        </nav>
-        <div className="flex items-center gap-3 text-right">
+    <SamitiLayout>
+      <div className="space-y-6 p-6">
+        {/* Header */}
+        <div className="flex justify-between items-center">
           <div>
-            <p className="text-xs text-neutral-400">Samiti Head</p>
-            <p className="text-sm font-semibold">Sunita Sharma</p>
+            <h1 className="text-3xl font-bold tracking-tight">Samiti Dashboard</h1>
+            <p className="text-muted-foreground">Manage milk collection and farmer payouts</p>
           </div>
-          <div className="h-9 w-9 rounded-full bg-[url('https://images.pexels.com/photos/415829/pexels-photo-415829.jpeg')] bg-cover bg-center" />
-        </div>
-      </header>
-
-      <main className="mx-auto flex max-w-6xl flex-col gap-8 px-4 pb-10 pt-4 lg:flex-row">
-        {/* Left: Monthly payout overview */}
-        <motion.section
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="flex-1"
-        >
-          <div className="mb-6 flex flex-col justify-between gap-4 md:flex-row md:items-end">
-            <div>
-              <h1 className="text-2xl md:text-3xl font-semibold tracking-tight mb-1">
-                Monthly Payout Overview
-              </h1>
-              <p className="text-sm text-neutral-500 max-w-md">
-                View your daily milk collection and estimated earnings for October 2024.
-              </p>
-            </div>
-            <button className="inline-flex items-center gap-2 rounded-full border border-neutral-200 bg-white px-4 py-2 text-sm font-medium shadow-sm">
-              October 2024
-              <ChevronDown className="h-4 w-4" />
-            </button>
-          </div>
-
-          {/* Summary cards */}
-          <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="rounded-3xl bg-white p-4 sm:p-5 shadow-sm">
-              <p className="text-xs font-medium text-neutral-400 mb-2">Total Milk Collected</p>
-              <p className="text-2xl font-semibold tracking-tight">35,678 <span className="text-sm font-medium text-neutral-400">Ltr</span></p>
-              <p className="mt-3 text-xs font-medium text-emerald-600">+5.2% vs last month</p>
-            </div>
-            <div className="rounded-3xl bg-white p-4 sm:p-5 shadow-sm">
-              <p className="text-xs font-medium text-neutral-400 mb-2">Estimated Payout</p>
-              <p className="text-2xl font-semibold tracking-tight">₹1,24,870</p>
-              <p className="mt-3 text-xs font-medium text-emerald-600">+4.8% vs last month</p>
-            </div>
-            <div className="rounded-3xl bg-white p-4 sm:p-5 shadow-sm">
-              <p className="text-xs font-medium text-neutral-400 mb-2">Average Fat %</p>
-              <p className="text-2xl font-semibold tracking-tight">4.2%</p>
-              <p className="mt-3 text-xs font-medium text-rose-500">-0.1% vs last month</p>
-            </div>
-            <div className="rounded-3xl bg-white p-4 sm:p-5 shadow-sm">
-              <p className="text-xs font-medium text-neutral-400 mb-2">Total SNF</p>
-              <p className="text-2xl font-semibold tracking-tight">3,141 <span className="text-sm font-medium text-neutral-400">Kg</span></p>
-              <p className="mt-3 text-xs font-medium text-emerald-600">+5.1% vs last month</p>
-            </div>
-          </div>
-
-          {/* Calendar grid */}
-          <div className="rounded-3xl bg-white p-4 sm:p-5 shadow-sm">
-            <div className="mb-4 flex items-center justify-between text-xs font-medium text-neutral-400">
-              <div className="flex gap-6">
-                <span>SUN</span>
-                <span>MON</span>
-                <span>TUE</span>
-                <span>WED</span>
-                <span>THU</span>
-                <span>FRI</span>
-                <span>SAT</span>
-              </div>
-            </div>
-            <div className="grid grid-cols-7 gap-2 text-xs">
-              {days.map((day) => (
-                <div
-                  key={day}
-                  className="flex flex-col items-center justify-center rounded-2xl bg-[#FBF2DF] px-2 py-3 text-[11px] font-medium text-neutral-600 shadow-[0_1px_0_rgba(0,0,0,0.02)]"
-                >
-                  <span className="mb-1 text-[10px] text-neutral-400">{day}</span>
-                  <span>{(1100 + day * 3.7).toFixed(1)} </span>
-                  <span className="mt-0.5 text-[10px] text-neutral-400">Ltr</span>
+          <Dialog open={isAddEntryOpen} onOpenChange={(open) => { setIsAddEntryOpen(open); if (!open) resetForm(); }}>
+            <DialogTrigger asChild>
+              <Button className="bg-[#8B7355] text-white hover:bg-[#6D5A43]">
+                <Plus className="mr-2 h-4 w-4" /> Add Milk Entry
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-lg">
+              <DialogHeader>
+                <DialogTitle>Record Milk Collection</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="farmerId">Select Farmer</Label>
+                  <Select name="farmerId" required>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select farmer..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {farmers.map((farmer) => (
+                        <SelectItem key={farmer.id} value={farmer.id.toString()}>
+                          {farmer.user.name} ({farmer.farmerCode})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-              ))}
-            </div>
-          </div>
-        </motion.section>
 
-        {/* Right: Monthly summary card */}
-        <motion.aside
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.1 }}
-          className="w-full max-w-md shrink-0"
-        >
-          <div className="rounded-3xl bg-white p-5 shadow-sm lg:sticky lg:top-6">
-            <div className="mb-6 flex items-center justify-between">
-              <div>
-                <h2 className="text-base font-semibold tracking-tight">Monthly Summary</h2>
-                <p className="text-xs text-neutral-400 mt-1">Weekly Collection Trend</p>
-              </div>
-              <button className="flex h-8 w-8 items-center justify-center rounded-full bg-neutral-100 text-neutral-500">
-                <ArrowUpRight className="h-4 w-4" />
-              </button>
-            </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="session">Shift</Label>
+                    <Select name="session" defaultValue="MORNING">
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select shift" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="MORNING">Morning</SelectItem>
+                        <SelectItem value="EVENING">Evening</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="quantityLitre">Quantity (Litres)</Label>
+                    <Input
+                      id="quantityLitre"
+                      name="quantityLitre"
+                      type="number"
+                      step="0.1"
+                      required
+                      value={qty}
+                      onChange={(e) => setQty(e.target.value)}
+                      placeholder="e.g., 10.5"
+                    />
+                  </div>
+                </div>
 
-            {/* Weekly tabs placeholder */}
-            <div className="mb-6 inline-flex rounded-full bg-neutral-100 p-1 text-xs font-medium">
-              {weeklyTabs.map((tab, index) => (
-                <button
-                  key={tab}
-                  className={`rounded-full px-3 py-1 ${
-                    index === 1 ? "bg-white shadow-sm text-neutral-900" : "text-neutral-500"
-                  }`}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="fat">FAT (%)</Label>
+                    <Input
+                      id="fat"
+                      name="fat"
+                      type="number"
+                      step="0.1"
+                      required
+                      value={fat}
+                      onChange={(e) => setFat(e.target.value)}
+                      placeholder="e.g., 4.5"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="snf">SNF (%)</Label>
+                    <Input
+                      id="snf"
+                      name="snf"
+                      type="number"
+                      step="0.1"
+                      required
+                      value={snf}
+                      onChange={(e) => setSnf(e.target.value)}
+                      placeholder="e.g., 8.5"
+                    />
+                  </div>
+                </div>
+
+                {/* Auto Price Calculation Display */}
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-gradient-to-br from-[#FFF9ED] to-[#F5E6D3] p-4 rounded-lg border-2 border-[#8B7355]/20 space-y-2"
                 >
-                  {tab}
-                </button>
-              ))}
-            </div>
-
-            {/* Placeholder mini chart */}
-            <div className="mb-6 h-24 w-full rounded-2xl bg-gradient-to-r from-amber-100 via-amber-50 to-emerald-50" />
-
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-sm font-semibold">Top Producers</h3>
-              <span className="text-xs text-neutral-400">This month</span>
-            </div>
-
-            <div className="space-y-3">
-              {topProducers.map((producer, idx) => (
-                <div key={producer.name} className="flex items-center justify-between text-sm">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-100 text-[11px] font-semibold">
-                      {producer.name
-                        .split(" ")
-                        .map((n) => n[0])
-                        .join("")}
+                  <div className="flex items-center gap-2 text-[#8B7355] font-semibold">
+                    <Calculator className="w-5 h-5" />
+                    <span>Auto Price Calculation</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div className="bg-white/60 rounded-md p-2">
+                      <span className="text-gray-600 text-xs">Rate/Litre:</span>
+                      <div className="font-bold text-lg text-[#8B7355]">
+                        {calculatedPrice ? `₹${calculatedPrice.pricePerLitre.toFixed(2)}` : '—'}
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-medium text-neutral-800">{producer.name}</p>
-                      <p className="text-[11px] text-neutral-400">Farmer #{1024 + idx}</p>
+                    <div className="bg-white/60 rounded-md p-2">
+                      <span className="text-gray-600 text-xs">Total Amount:</span>
+                      <div className="font-bold text-lg text-green-600">
+                        {calculatedPrice ? `₹${calculatedPrice.totalAmount.toFixed(2)}` : '—'}
+                      </div>
                     </div>
                   </div>
-                  <p className="text-sm font-semibold text-neutral-800">{producer.volume}</p>
-                </div>
-              ))}
-            </div>
+                </motion.div>
 
-            <button className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#F5C521] py-2.5 text-sm font-semibold text-neutral-900 shadow-md hover:bg-[#F2B800] transition-colors">
-              <Download className="h-4 w-4" />
-              Generate Report
-            </button>
-          </div>
-        </motion.aside>
-      </main>
-    </div>
+                <Button
+                  type="submit"
+                  className="w-full bg-[#8B7355] hover:bg-[#6D5A43]"
+                  disabled={createEntryMutation.isPending}
+                >
+                  {createEntryMutation.isPending ? "Recording..." : "Record Entry"}
+                </Button>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
+
+        {/* Stats Cards */}
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <Card className="bg-gradient-to-br from-blue-50 to-blue-100/50">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Today's Collection</CardTitle>
+              <Milk className="h-4 w-4 text-blue-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{dailySummary?.totalLitres.toFixed(1) || '0'} L</div>
+              <p className="text-xs text-muted-foreground">
+                {dailySummary?.entriesCount || 0} entries recorded
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-green-50 to-green-100/50">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Today's Amount</CardTitle>
+              <IndianRupee className="h-4 w-4 text-green-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">₹{dailySummary?.totalAmount.toFixed(2) || '0.00'}</div>
+              <p className="text-xs text-muted-foreground">
+                Avg FAT: {dailySummary?.avgFat.toFixed(1) || '0'}% | SNF: {dailySummary?.avgSnf.toFixed(1) || '0'}%
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-amber-50 to-amber-100/50">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Active Farmers</CardTitle>
+              <Users className="h-4 w-4 text-amber-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{farmers.length}</div>
+              <p className="text-xs text-muted-foreground">Total registered farmers</p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-purple-50 to-purple-100/50">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Monthly Target</CardTitle>
+              <TrendingUp className="h-4 w-4 text-purple-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">₹{totals?.totalOwedToFarmers.toFixed(0) || '0'}</div>
+              <p className="text-xs text-muted-foreground">This month's collection</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Alerts Section */}
+        <SamitiAlerts />
+
+        {/* Financial Summary Cards */}
+        <div className="grid gap-4 md:grid-cols-2">
+          <Card className="border-2 border-red-200 bg-red-50/50">
+            <CardHeader>
+              <CardTitle className="text-red-700 flex items-center gap-2">
+                <ArrowUpRight className="h-5 w-5 rotate-90" />
+                Total Owed to Farmers
+              </CardTitle>
+              <CardDescription>Amount Samiti must pay to farmers ({monthName})</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-4xl font-bold text-red-600">
+                ₹{totals?.totalOwedToFarmers.toFixed(2) || '0.00'}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-2 border-green-200 bg-green-50/50">
+            <CardHeader>
+              <CardTitle className="text-green-700 flex items-center gap-2">
+                <ArrowUpRight className="h-5 w-5" />
+                Total from Nand Dairy
+              </CardTitle>
+              <CardDescription>Pending invoices from Nand Dairy</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-4xl font-bold text-green-600">
+                ₹{totals?.totalFromDairy.toFixed(2) || '0.00'}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Monthly Payout Summary */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Monthly Payout Summary - {monthName} {monthlyPayouts?.year}</CardTitle>
+            <CardDescription>Farmer-wise milk collection and payment breakdown</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Farmer</TableHead>
+                  <TableHead>Code</TableHead>
+                  <TableHead className="text-right">Entries</TableHead>
+                  <TableHead className="text-right">Total Litres</TableHead>
+                  <TableHead className="text-right">Avg FAT</TableHead>
+                  <TableHead className="text-right">Avg SNF</TableHead>
+                  <TableHead className="text-right">Total Amount</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {monthlyPayouts?.farmers.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center text-muted-foreground">
+                      No data for this month yet
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  monthlyPayouts?.farmers.map((payout) => (
+                    <TableRow key={payout.farmerId}>
+                      <TableCell className="font-medium">{payout.farmerName}</TableCell>
+                      <TableCell className="text-muted-foreground">{payout.farmerCode}</TableCell>
+                      <TableCell className="text-right">{payout.entriesCount}</TableCell>
+                      <TableCell className="text-right">{payout.totalLitres.toFixed(1)} L</TableCell>
+                      <TableCell className="text-right">{payout.avgFat.toFixed(1)}%</TableCell>
+                      <TableCell className="text-right">{payout.avgSnf.toFixed(1)}%</TableCell>
+                      <TableCell className="text-right font-bold text-green-600">
+                        ₹{payout.totalAmount.toFixed(2)}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+
+        {/* Farmers List */}
+        <Card>
+          <CardHeader>
+            <CardTitle>All Farmers</CardTitle>
+            <CardDescription>List of farmers assigned to this Samiti</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Farmer Code</TableHead>
+                  <TableHead>Email</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {farmers.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={3} className="text-center text-muted-foreground">
+                      No farmers assigned yet
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  farmers.map((farmer) => (
+                    <TableRow key={farmer.id}>
+                      <TableCell className="font-medium">{farmer.user.name}</TableCell>
+                      <TableCell className="text-muted-foreground">{farmer.farmerCode}</TableCell>
+                      <TableCell className="text-muted-foreground">{farmer.user.email}</TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      </div>
+    </SamitiLayout>
   );
-};
-
-export default SamitiDashboard;
+}

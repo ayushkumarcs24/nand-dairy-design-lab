@@ -1,4 +1,4 @@
-import { Bell, Home, Package2, Droplet, FileText, CreditCard } from "lucide-react";
+import { Bell, Home, Package2, Droplet, FileText, CreditCard, Users, BarChart3 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 
@@ -10,7 +10,7 @@ const SamitiSidebar = () => {
             isActive: boolean;
         }
     ) => `flex items-center gap-3 rounded-lg px-3 py-2 text-gray-900 transition-all hover:text-gray-900 dark:text-gray-50 dark:hover:text-gray-50 ${isActive ? "bg-gray-100 dark:bg-gray-800" : "text-gray-500"
-        }`;
+    }`;
 
     return (
         <div className="hidden border-r bg-gray-50 lg:block dark:bg-gray-900/40">
@@ -38,6 +38,14 @@ const SamitiSidebar = () => {
                             <NavLink to="/samiti/milk-collection" className={navLinkClasses}>
                                 <Droplet className="h-4 w-4" />
                                 Milk Collection
+                            </NavLink>
+                            <NavLink to="/samiti/farmers" className={navLinkClasses}>
+                                <Users className="h-4 w-4" />
+                                Farmers
+                            </NavLink>
+                            <NavLink to="/samiti/reports" className={navLinkClasses}>
+                                <BarChart3 className="h-4 w-4" />
+                                Reports
                             </NavLink>
                             <NavLink to="/samiti/invoices" className={navLinkClasses}>
                                 <FileText className="h-4 w-4" />

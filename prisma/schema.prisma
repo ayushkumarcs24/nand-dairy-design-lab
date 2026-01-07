@@ -90,6 +90,7 @@ model Samiti {
 model Farmer {
   id          Int         @id @default(autoincrement())
   farmerCode  String      @unique
+  village     String      @default("")
   user        User        @relation(fields: [userId], references: [id])
   userId      Int         @unique
   samiti      Samiti      @relation(fields: [samitiId], references: [id])

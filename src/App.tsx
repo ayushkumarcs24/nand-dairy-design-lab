@@ -16,7 +16,10 @@ import SamitiDashboard from "./pages/samiti/SamitiDashboard";
 import SamitiMilkCollection from "./pages/samiti/SamitiMilkCollection";
 import SamitiInvoices from "./pages/samiti/SamitiInvoices";
 import SamitiPayouts from "./pages/samiti/SamitiPayouts";
-import FarmerDashboard from "./pages/farmer/FarmerDashboard";
+import SamitiReports from "./pages/samiti/SamitiReports";
+import SamitiFarmers from "./pages/samiti/SamitiFarmers";
+import FarmerDashboard from "./pages/FarmerDashboard";
+import FarmerDashboardNew from "./pages/farmer/FarmerDashboardNew";
 import FarmerDailyEntry from "./pages/farmer/FarmerDailyEntry";
 import FarmerStatements from "./pages/farmer/FarmerStatements";
 import FarmerAnalytics from "./pages/farmer/FarmerAnalytics";
@@ -61,14 +64,17 @@ const App = () => (
             {/* Samiti Routes */}
             <Route path="/samiti/dashboard" element={<ProtectedRoute allowedRoles={["SAMITI"]}><SamitiDashboard /></ProtectedRoute>} />
             <Route path="/samiti/milk-collection" element={<ProtectedRoute allowedRoles={["SAMITI"]}><SamitiMilkCollection /></ProtectedRoute>} />
+            <Route path="/samiti/farmers" element={<ProtectedRoute allowedRoles={["SAMITI"]}><SamitiFarmers /></ProtectedRoute>} />
+            <Route path="/samiti/reports" element={<ProtectedRoute allowedRoles={["SAMITI"]}><SamitiReports /></ProtectedRoute>} />
             <Route path="/samiti/invoices" element={<ProtectedRoute allowedRoles={["SAMITI"]}><SamitiInvoices /></ProtectedRoute>} />
             <Route path="/samiti/payouts" element={<ProtectedRoute allowedRoles={["SAMITI"]}><SamitiPayouts /></ProtectedRoute>} />
 
+
             {/* Farmer Routes */}
-            <Route path="/farmer/dashboard" element={<ProtectedRoute allowedRoles={["FARMER"]}><FarmerDashboard /></ProtectedRoute>} />
-            <Route path="/farmer/daily-entry" element={<ProtectedRoute allowedRoles={["FARMER"]}><FarmerDailyEntry /></ProtectedRoute>} />
+            <Route path="/farmer/dashboard" element={<ProtectedRoute allowedRoles={["FARMER"]}><FarmerDashboardNew /></ProtectedRoute>} />
             <Route path="/farmer/statements" element={<ProtectedRoute allowedRoles={["FARMER"]}><FarmerStatements /></ProtectedRoute>} />
             <Route path="/farmer-analytics" element={<ProtectedRoute allowedRoles={["FARMER"]}><FarmerAnalytics /></ProtectedRoute>} />
+
 
             {/* Distributor Routes */}
             <Route path="/distributor/dashboard" element={<ProtectedRoute allowedRoles={["DISTRIBUTOR"]}><DistributorDashboard /></ProtectedRoute>} />

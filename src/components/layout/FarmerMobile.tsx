@@ -1,4 +1,4 @@
-import { Home, Package2, PanelLeft, Search, Droplet, FileText } from "lucide-react";
+import { Home, Package2, PanelLeft, Search, FileText } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -12,8 +12,7 @@ const FarmerMobile = () => {
     }: {
       isActive: boolean;
     }
-  ) => `flex items-center gap-4 px-2.5 dark:hover:text-gray-50 ${
-    isActive ? "text-gray-900 dark:text-gray-50" : "text-gray-500 hover:text-gray-900"
+  ) => `flex items-center gap-4 px-2.5 dark:hover:text-gray-50 ${isActive ? "text-gray-900 dark:text-gray-50" : "text-gray-500 hover:text-gray-900"
   }`;
 
   return (
@@ -37,10 +36,6 @@ const FarmerMobile = () => {
             <NavLink to="/farmer/dashboard" className={navLinkClasses}>
               <Home className="h-5 w-5" />
               Dashboard
-            </NavLink>
-            <NavLink to="/farmer/daily-entry" className={navLinkClasses}>
-              <Droplet className="h-5 w-5" />
-              Daily Milk Entry
             </NavLink>
             <NavLink to="/farmer/statements" className={navLinkClasses}>
               <FileText className="h-5 w-5" />

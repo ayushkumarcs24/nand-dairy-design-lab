@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { SamitiLayout } from "@/components/layout/SamitiLayout";
@@ -22,7 +22,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Calculator } from "lucide-react";
 import { ColumnDef } from "@tanstack/react-table";
 import { format } from "date-fns";
 
@@ -31,7 +31,7 @@ interface MilkCollection {
     farmerId: number;
     farmer: {
         name: string;
-        code: string;
+        farmerCode: string;
     };
     quantityLitre: number;
     fat: number;
@@ -44,8 +44,10 @@ interface MilkCollection {
 
 interface Farmer {
     id: number;
-    name: string;
-    code: string;
+    farmerCode: string;
+    user: {
+        name: string;
+    };
 }
 
 export default function SamitiMilkCollection() {
@@ -53,6 +55,12 @@ export default function SamitiMilkCollection() {
     const queryClient = useQueryClient();
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [editingCollection, setEditingCollection] = useState<MilkCollection | null>(null);
+
+    // Form states for calculation
+    const [fat, setFat] = useState<string>("");
+    const [snf, setSnf] = useState<string>("");
+    const [qty, setQty] = useState<string>("");
+    const [calculatedPrice, setCalculatedPrice] = useState<{ pricePerLitre: number, totalAmount: number } | null>(null);
 
     const { data: collections = [], isLoading } = useQuery<MilkCollection[]>({
         queryKey: ["milk-collections"],
@@ -62,13 +70,34 @@ export default function SamitiMilkCollection() {
         },
     });
 
-    // Mock farmers list for now, ideally fetch from API
-    // Since we don't have a direct endpoint for farmers list for samiti in the summary, 
-    // we might need to add one or assume we can get it. 
-    // For now, let's assume we can get it or just input farmer ID manually.
-    // Actually, let's just use a text input for Farmer ID for simplicity if we don't have a list endpoint handy.
-    // Wait, we do have `GET /api/samiti/farmers`? No, we didn't implement that explicitly in the summary.
-    // Let's assume the user enters the Farmer Code.
+    const { data: farmers = [] } = useQuery<Farmer[]>({
+        queryKey: ["samiti-farmers"],
+        queryFn: async () => {
+            const res = await api.get<Farmer[]>("/samiti/farmers");
+            return res.data;
+        },
+    });
+
+    // Auto-calculate effect
+    useEffect(() => {
+        const calculate = async () => {
+            if (!fat || !snf || !qty) return;
+            try {
+                const res = await api.post<{ pricePerLitre: number, totalAmount: number }>("/samiti/calculate-price", {
+                    fat: Number(fat),
+                    snf: Number(snf),
+                    quantityLitre: Number(qty)
+                });
+                setCalculatedPrice(res.data);
+            } catch (e) {
+                console.error("Calculation failed", e);
+            }
+        };
+
+        const timer = setTimeout(calculate, 500); // 500ms debounce
+        return () => clearTimeout(timer);
+    }, [fat, snf, qty]);
+
 
     const createMutation = useMutation({
         mutationFn: async (data: any) => {
@@ -76,7 +105,13 @@ export default function SamitiMilkCollection() {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["milk-collections"] });
+            // Invalidate dashboard queries so the dashboard updates
+            queryClient.invalidateQueries({ queryKey: ["samiti-daily-summary"] });
+            queryClient.invalidateQueries({ queryKey: ["samiti-monthly-payouts"] });
+            queryClient.invalidateQueries({ queryKey: ["samiti-totals"] });
+            queryClient.invalidateQueries({ queryKey: ["samiti-alerts"] });
             setIsCreateOpen(false);
+            resetForm();
             toast({ title: "Milk collection recorded successfully" });
         },
         onError: (error: any) => {
@@ -91,6 +126,7 @@ export default function SamitiMilkCollection() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["milk-collections"] });
             setEditingCollection(null);
+            resetForm();
             toast({ title: "Collection updated successfully" });
         },
         onError: () => {
@@ -111,6 +147,10 @@ export default function SamitiMilkCollection() {
         },
     });
 
+    const resetForm = () => {
+        setFat(""); setSnf(""); setQty(""); setCalculatedPrice(null);
+    };
+
     const columns: ColumnDef<MilkCollection>[] = [
         {
             accessorKey: "collectionDate",
@@ -122,9 +162,9 @@ export default function SamitiMilkCollection() {
             header: "Shift",
         },
         {
-            accessorKey: "farmer.name",
+            accessorKey: "farmer.user.name",
             header: "Farmer",
-            cell: ({ row }) => `${row.original.farmer.name} (${row.original.farmer.code})`,
+            cell: ({ row }) => `${row.original.farmer.name} (${row.original.farmer.farmerCode})`,
         },
         {
             accessorKey: "quantityLitre",
@@ -152,7 +192,12 @@ export default function SamitiMilkCollection() {
                         <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => setEditingCollection(collection)}
+                            onClick={() => {
+                                setEditingCollection(collection);
+                                setFat(collection.fat.toString());
+                                setSnf(collection.snf.toString());
+                                setQty(collection.quantityLitre.toString());
+                            }}
                         >
                             <Pencil className="h-4 w-4" />
                         </Button>
@@ -183,7 +228,7 @@ export default function SamitiMilkCollection() {
             fat: Number(formData.get("fat")),
             snf: Number(formData.get("snf")),
             shift: formData.get("shift"),
-            collectionDate: new Date().toISOString(), // Default to now for simplicity, or add date picker
+            collectionDate: new Date().toISOString(),
         };
 
         if (isEdit && editingCollection) {
@@ -198,26 +243,34 @@ export default function SamitiMilkCollection() {
             <div className="space-y-6">
                 <div className="flex justify-between items-center">
                     <h1 className="text-3xl font-bold tracking-tight">Milk Collection</h1>
-                    <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+                    <Dialog open={isCreateOpen} onOpenChange={(open) => { setIsCreateOpen(open); if (!open) resetForm(); }}>
                         <DialogTrigger asChild>
-                            <Button>
+                            <Button className="bg-[#8B7355] text-white hover:bg-[#6D5A43]">
                                 <Plus className="mr-2 h-4 w-4" /> New Entry
                             </Button>
                         </DialogTrigger>
-                        <DialogContent>
+                        <DialogContent className="max-w-lg">
                             <DialogHeader>
                                 <DialogTitle>Record Milk Collection</DialogTitle>
                             </DialogHeader>
                             <form onSubmit={(e) => handleSubmit(e, false)} className="space-y-4">
                                 <div className="space-y-2">
-                                    <Label htmlFor="farmerId">Farmer ID</Label>
-                                    <Input id="farmerId" name="farmerId" type="number" required placeholder="Enter Farmer ID" />
+                                    <Label htmlFor="farmerId">Select Farmer</Label>
+                                    <Select name="farmerId" required>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Select farmer..." />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {farmers.map((farmer) => (
+                                                <SelectItem key={farmer.id} value={farmer.id.toString()}>
+                                                    {farmer.user.name} ({farmer.farmerCode})
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
                                 </div>
+
                                 <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="quantityLitre">Quantity (L)</Label>
-                                        <Input id="quantityLitre" name="quantityLitre" type="number" step="0.1" required />
-                                    </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="shift">Shift</Label>
                                         <Select name="shift" defaultValue="MORNING">
@@ -230,18 +283,55 @@ export default function SamitiMilkCollection() {
                                             </SelectContent>
                                         </Select>
                                     </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="quantityLitre">Quantity (L)</Label>
+                                        <Input
+                                            id="quantityLitre" name="quantityLitre" type="number" step="0.1" required
+                                            value={qty} onChange={(e) => setQty(e.target.value)}
+                                        />
+                                    </div>
                                 </div>
+
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
-                                        <Label htmlFor="fat">FAT</Label>
-                                        <Input id="fat" name="fat" type="number" step="0.1" required />
+                                        <Label htmlFor="fat">FAT (%)</Label>
+                                        <Input
+                                            id="fat" name="fat" type="number" step="0.1" required
+                                            value={fat} onChange={(e) => setFat(e.target.value)}
+                                        />
                                     </div>
                                     <div className="space-y-2">
-                                        <Label htmlFor="snf">SNF</Label>
-                                        <Input id="snf" name="snf" type="number" step="0.1" required />
+                                        <Label htmlFor="snf">SNF (%)</Label>
+                                        <Input
+                                            id="snf" name="snf" type="number" step="0.1" required
+                                            value={snf} onChange={(e) => setSnf(e.target.value)}
+                                        />
                                     </div>
                                 </div>
-                                <Button type="submit" className="w-full" disabled={createMutation.isPending}>
+
+                                {/* Calculated Price Preview */}
+                                <div className="bg-[#FFF9ED] p-4 rounded-lg border border-[#F5E6D3] space-y-2">
+                                    <div className="flex items-center gap-2 text-[#8B7355] font-semibold">
+                                        <Calculator className="w-4 h-4" />
+                                        <span>Estimated Price</span>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4 text-sm">
+                                        <div>
+                                            <span className="text-gray-500">Rate/Litre:</span>
+                                            <span className="ml-2 font-medium">
+                                                {calculatedPrice ? `₹${calculatedPrice.pricePerLitre.toFixed(2)}` : '--'}
+                                            </span>
+                                        </div>
+                                        <div>
+                                            <span className="text-gray-500">Total:</span>
+                                            <span className="ml-2 font-bold text-lg text-green-600">
+                                                {calculatedPrice ? `₹${calculatedPrice.totalAmount.toFixed(2)}` : '--'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <Button type="submit" className="w-full bg-[#8B7355] hover:bg-[#6D5A43]" disabled={createMutation.isPending}>
                                     {createMutation.isPending ? "Recording..." : "Record Entry"}
                                 </Button>
                             </form>
@@ -252,7 +342,7 @@ export default function SamitiMilkCollection() {
                 {isLoading ? (
                     <div>Loading...</div>
                 ) : (
-                    <DataTable columns={columns} data={collections} searchKey="farmer.name" searchPlaceholder="Search farmer..." />
+                    <DataTable columns={columns} data={collections} searchKey="farmer.user.name" searchPlaceholder="Search farmer..." />
                 )}
 
                 <Dialog open={!!editingCollection} onOpenChange={(open) => !open && setEditingCollection(null)}>
@@ -262,26 +352,27 @@ export default function SamitiMilkCollection() {
                         </DialogHeader>
                         {editingCollection && (
                             <form onSubmit={(e) => handleSubmit(e, true)} className="space-y-4">
+                                {/* Similar form field structure as Create, but with defaults */}
+                                {/* Simplified edit form for brevity, ideally reuse component */}
                                 <div className="space-y-2">
-                                    <Label htmlFor="edit-farmerId">Farmer ID</Label>
-                                    <Input id="edit-farmerId" name="farmerId" type="number" defaultValue={editingCollection.farmerId} required />
+                                    <Label>Farmer</Label>
+                                    <div className="p-2 bg-gray-100 rounded">{editingCollection.farmer.name} ({editingCollection.farmer.farmerCode})</div>
+                                    <input type="hidden" name="farmerId" value={editingCollection.farmerId} />
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
-                                        <Label htmlFor="edit-quantityLitre">Quantity (L)</Label>
-                                        <Input id="edit-quantityLitre" name="quantityLitre" type="number" step="0.1" defaultValue={editingCollection.quantityLitre} required />
-                                    </div>
-                                    <div className="space-y-2">
                                         <Label htmlFor="edit-shift">Shift</Label>
                                         <Select name="shift" defaultValue={editingCollection.shift}>
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Select shift" />
-                                            </SelectTrigger>
+                                            <SelectTrigger><SelectValue /></SelectTrigger>
                                             <SelectContent>
                                                 <SelectItem value="MORNING">Morning</SelectItem>
                                                 <SelectItem value="EVENING">Evening</SelectItem>
                                             </SelectContent>
                                         </Select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="edit-qty">Quantity</Label>
+                                        <Input id="edit-qty" name="quantityLitre" type="number" step="0.1" defaultValue={editingCollection.quantityLitre} required />
                                     </div>
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">

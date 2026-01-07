@@ -274,3 +274,48 @@ farmerRouter.get("/dashboard-summary", async (req, res) => {
 
   return res.json({ totalMilk, totalEarnings, avgFat, avgSnf, entries });
 });
+
+// GET /api/farmer/today-summary
+farmerRouter.get("/today-summary", async (req, res) => {
+  if (!req.user) return res.status(401).json({ message: "Not authenticated" });
+
+  const farmer = await prisma.farmer.findUnique({ where: { userId: req.user.userId } });
+  if (!farmer) return res.status(400).json({ message: "Farmer profile not found" });
+
+  const today = new Date();
+  const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+
+  const todayEntries = await prisma.milkEntry.findMany({
+    where: {
+      farmerId: farmer.id,
+      date: { gte: startOfDay, lt: endOfDay },
+    },
+  });
+
+  const morningEntry = todayEntries.find(e => e.session === MilkSession.MORNING);
+  const eveningEntry = todayEntries.find(e => e.session === MilkSession.EVENING);
+
+  const totalMilk = todayEntries.reduce((sum, e) => sum + e.quantityLitre, 0);
+  const totalAmount = todayEntries.reduce((sum, e) => sum + e.totalAmount, 0);
+
+  return res.json({
+    morning: morningEntry ? {
+      quantity: morningEntry.quantityLitre,
+      fat: morningEntry.fat,
+      snf: morningEntry.snf,
+      pricePerLitre: morningEntry.pricePerLitre,
+      amount: morningEntry.totalAmount,
+    } : null,
+    evening: eveningEntry ? {
+      quantity: eveningEntry.quantityLitre,
+      fat: eveningEntry.fat,
+      snf: eveningEntry.snf,
+      pricePerLitre: eveningEntry.pricePerLitre,
+      amount: eveningEntry.totalAmount,
+    } : null,
+    totalMilk,
+    totalAmount,
+  });
+});
+
