@@ -14,6 +14,13 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
 import { Plus, CheckCircle } from "lucide-react";
 import { ColumnDef } from "@tanstack/react-table";
@@ -37,11 +44,20 @@ export default function SamitiPayouts() {
     const { toast } = useToast();
     const queryClient = useQueryClient();
     const [isCreateOpen, setIsCreateOpen] = useState(false);
+    const [selectedFarmerId, setSelectedFarmerId] = useState<string>("");
 
     const { data: payouts = [], isLoading } = useQuery<FarmerPayout[]>({
         queryKey: ["samiti-payouts"],
         queryFn: async () => {
             const res = await api.get<FarmerPayout[]>("/samiti/payouts");
+            return res.data;
+        },
+    });
+
+    const { data: farmers = [] } = useQuery<Array<{ id: number; farmerCode: string; user: { name: string } }>>({
+        queryKey: ["samiti-farmers"],
+        queryFn: async () => {
+            const res = await api.get<Array<{ id: number; farmerCode: string; user: { name: string } }>>("/samiti/farmers");
             return res.data;
         },
     });
@@ -134,10 +150,11 @@ export default function SamitiPayouts() {
         e.preventDefault();
         const formData = new FormData(e.currentTarget);
         createMutation.mutate({
-            farmerId: Number(formData.get("farmerId")),
+            farmerId: Number(selectedFarmerId),
             startDate: formData.get("startDate") as string,
             endDate: formData.get("endDate") as string,
         });
+        setSelectedFarmerId("");
     };
 
     return (
@@ -157,8 +174,19 @@ export default function SamitiPayouts() {
                             </DialogHeader>
                             <form onSubmit={handleCreate} className="space-y-4">
                                 <div className="space-y-2">
-                                    <Label htmlFor="farmerId">Farmer ID</Label>
-                                    <Input id="farmerId" name="farmerId" type="number" required placeholder="Enter Farmer ID" />
+                                    <Label htmlFor="farmerId">Select Farmer</Label>
+                                    <Select value={selectedFarmerId} onValueChange={setSelectedFarmerId} required>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Select a farmer" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {farmers.map((farmer) => (
+                                                <SelectItem key={farmer.id} value={farmer.id.toString()}>
+                                                    {farmer.user.name} ({farmer.farmerCode})
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="startDate">Start Date</Label>

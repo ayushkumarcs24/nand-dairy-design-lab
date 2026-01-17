@@ -12,6 +12,7 @@ import AdminDistributors from "./pages/admin/AdminDistributors";
 import AdminProducts from "./pages/admin/AdminProducts";
 import AdminVehicles from "./pages/admin/AdminVehicles";
 import AdminInvoices from "./pages/admin/AdminInvoices";
+import AdminAnalytics from "./pages/admin/AdminAnalytics";
 import SamitiDashboard from "./pages/samiti/SamitiDashboard";
 import SamitiMilkCollection from "./pages/samiti/SamitiMilkCollection";
 import SamitiInvoices from "./pages/samiti/SamitiInvoices";
@@ -60,6 +61,7 @@ const App = () => (
             <Route path="/admin/products" element={<ProtectedRoute allowedRoles={["OWNER"]}><AdminProducts /></ProtectedRoute>} />
             <Route path="/admin/vehicles" element={<ProtectedRoute allowedRoles={["OWNER"]}><AdminVehicles /></ProtectedRoute>} />
             <Route path="/admin/invoices" element={<ProtectedRoute allowedRoles={["OWNER"]}><AdminInvoices /></ProtectedRoute>} />
+            <Route path="/admin/analytics" element={<ProtectedRoute allowedRoles={["OWNER"]}><AdminAnalytics /></ProtectedRoute>} />
 
             {/* Samiti Routes */}
             <Route path="/samiti/dashboard" element={<ProtectedRoute allowedRoles={["SAMITI"]}><SamitiDashboard /></ProtectedRoute>} />

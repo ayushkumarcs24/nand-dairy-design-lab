@@ -115,22 +115,37 @@ samitiRouter.post("/invoices/generate", async (req, res) => {
   if (!req.user) return res.status(401).json({ message: "Not authenticated" });
 
   const { startDate, endDate } = req.body;
+
+  // Set the start to beginning of day and end to end of day
   const start = new Date(startDate);
+  start.setHours(0, 0, 0, 0);
+
   const end = new Date(endDate);
+  end.setHours(23, 59, 59, 999);
 
   const samiti = await prisma.samiti.findUnique({ where: { userId: req.user.userId } });
   if (!samiti) return res.status(400).json({ message: "Samiti profile not found" });
 
-  // Calculate total amount
+  console.log('[Invoice] Generating for date range:', { start, end, samitiId: samiti.id });
+
+  // Calculate total amount for the specific date range
   const aggregate = await prisma.milkEntry.aggregate({
     where: {
       samitiId: samiti.id,
       date: { gte: start, lte: end },
     },
     _sum: { totalAmount: true },
+    _count: true,
   });
 
+  console.log('[Invoice] Found entries:', { count: aggregate._count, total: aggregate._sum.totalAmount });
+
   const totalAmount = aggregate._sum.totalAmount || 0;
+
+  if (totalAmount === 0) {
+    return res.status(400).json({ message: "No milk entries found for the specified period" });
+  }
+
   const invoiceNumber = `INV-${samiti.code}-${Date.now()}`;
 
   const invoice = await prisma.samitiInvoice.create({
@@ -177,11 +192,30 @@ samitiRouter.post("/payouts", async (req, res) => {
   if (!req.user) return res.status(401).json({ message: "Not authenticated" });
 
   const { farmerId, startDate, endDate } = req.body;
+
+  // Set the start to beginning of day and end to end of day
   const start = new Date(startDate);
+  start.setHours(0, 0, 0, 0);
+
   const end = new Date(endDate);
+  end.setHours(23, 59, 59, 999);
 
   const samiti = await prisma.samiti.findUnique({ where: { userId: req.user.userId } });
   if (!samiti) return res.status(400).json({ message: "Samiti profile not found" });
+
+  console.log('[Payout] Generating for farmer:', { farmerId, start, end, samitiId: samiti.id });
+
+  // Verify the farmer exists and belongs to this samiti
+  const farmer = await prisma.farmer.findFirst({
+    where: {
+      id: Number(farmerId),
+      samitiId: samiti.id,
+    },
+  });
+
+  if (!farmer) {
+    return res.status(404).json({ message: "Farmer not found or does not belong to this samiti" });
+  }
 
   const aggregate = await prisma.milkEntry.aggregate({
     where: {
@@ -190,9 +224,17 @@ samitiRouter.post("/payouts", async (req, res) => {
       date: { gte: start, lte: end },
     },
     _sum: { totalAmount: true },
+    _count: true,
   });
 
+  console.log('[Payout] Found entries:', { count: aggregate._count, total: aggregate._sum.totalAmount });
+
   const totalAmount = aggregate._sum.totalAmount || 0;
+
+  if (totalAmount === 0) {
+    return res.status(400).json({ message: "No milk entries found for this farmer in the specified period" });
+  }
+
   const payoutNumber = `PAY-${farmerId}-${Date.now()}`;
 
   const payout = await prisma.farmerPayout.create({
@@ -209,6 +251,112 @@ samitiRouter.post("/payouts", async (req, res) => {
 
   res.status(201).json(payout);
 });
+
+// POST /api/samiti/payouts/bulk - Create payouts for all farmers at once
+samitiRouter.post("/payouts/bulk", async (req, res) => {
+  if (!req.user) return res.status(401).json({ message: "Not authenticated" });
+
+  const { startDate, endDate } = req.body;
+
+  // Set the start to beginning of day and end to end of day
+  const start = new Date(startDate);
+  start.setHours(0, 0, 0, 0);
+
+  const end = new Date(endDate);
+  end.setHours(23, 59, 59, 999);
+
+  const samiti = await prisma.samiti.findUnique({ where: { userId: req.user.userId } });
+  if (!samiti) return res.status(400).json({ message: "Samiti profile not found" });
+
+  console.log('[Bulk Payout] Generating for all farmers:', { start, end, samitiId: samiti.id });
+
+  // Get all farmers for this samiti
+  const farmers = await prisma.farmer.findMany({
+    where: { samitiId: samiti.id },
+    include: { user: true },
+  });
+
+  if (farmers.length === 0) {
+    return res.status(400).json({ message: "No farmers found in this samiti" });
+  }
+
+  const payouts = [];
+  const skipped = [];
+  const errors = [];
+
+  // Create payouts for each farmer
+  for (const farmer of farmers) {
+    try {
+      // Calculate total for this farmer
+      const aggregate = await prisma.milkEntry.aggregate({
+        where: {
+          samitiId: samiti.id,
+          farmerId: farmer.id,
+          date: { gte: start, lte: end },
+        },
+        _sum: { totalAmount: true },
+        _count: true,
+      });
+
+      const totalAmount = aggregate._sum.totalAmount || 0;
+
+      if (totalAmount === 0) {
+        skipped.push({
+          farmerId: farmer.id,
+          farmerName: farmer.user.name,
+          reason: "No milk entries in date range",
+        });
+        continue;
+      }
+
+      const payoutNumber = `PAY-${farmer.id}-${Date.now()}`;
+
+      const payout = await prisma.farmerPayout.create({
+        data: {
+          samitiId: samiti.id,
+          farmerId: farmer.id,
+          payoutNumber,
+          startDate: start,
+          endDate: end,
+          totalAmount,
+          status: PaymentStatus.UNPAID,
+        },
+      });
+
+      payouts.push({
+        ...payout,
+        farmerName: farmer.user.name,
+        entryCount: aggregate._count,
+      });
+    } catch (error: any) {
+      errors.push({
+        farmerId: farmer.id,
+        farmerName: farmer.user.name,
+        error: error.message,
+      });
+    }
+  }
+
+  console.log('[Bulk Payout] Results:', {
+    created: payouts.length,
+    skipped: skipped.length,
+    errors: errors.length
+  });
+
+  res.status(201).json({
+    message: `Created ${payouts.length} payout(s)`,
+    payouts,
+    skipped,
+    errors,
+    summary: {
+      totalFarmers: farmers.length,
+      payoutsCreated: payouts.length,
+      farmersSkipped: skipped.length,
+      errorCount: errors.length,
+    },
+  });
+});
+
 
 // GET /api/samiti/payouts
 samitiRouter.get("/payouts", async (req, res) => {

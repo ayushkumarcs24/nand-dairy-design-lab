@@ -1,4 +1,4 @@
-import { Bell, Home, Package2, Droplet, FileText, CreditCard, Users, BarChart3 } from "lucide-react";
+import { Bell, Home, Package2, FileText, CreditCard, Users, BarChart3 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 
@@ -34,10 +34,6 @@ const SamitiSidebar = () => {
                             <NavLink to="/samiti/dashboard" className={navLinkClasses}>
                                 <Home className="h-4 w-4" />
                                 Dashboard
-                            </NavLink>
-                            <NavLink to="/samiti/milk-collection" className={navLinkClasses}>
-                                <Droplet className="h-4 w-4" />
-                                Milk Collection
                             </NavLink>
                             <NavLink to="/samiti/farmers" className={navLinkClasses}>
                                 <Users className="h-4 w-4" />

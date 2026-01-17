@@ -109,7 +109,56 @@ export default function AdminInvoices() {
         <AdminLayout>
             <div className="space-y-6">
                 <div className="flex justify-between items-center">
-                    <h1 className="text-3xl font-bold tracking-tight">Samiti Invoices</h1>
+                    <div>
+                        <h1 className="text-3xl font-bold tracking-tight">Samiti Invoices</h1>
+                        <p className="text-muted-foreground mt-1">Manage payments to samitis for milk collection</p>
+                    </div>
+                </div>
+
+                {/* Summary Cards */}
+                <div className="grid gap-4 md:grid-cols-3">
+                    <div className="glass-card rounded-xl p-6 border-l-4 border-amber-500">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-sm font-medium text-muted-foreground">Pending Payments</p>
+                                <p className="text-2xl font-bold text-amber-600">
+                                    ₹{invoices
+                                        .filter(inv => inv.status === "UNPAID")
+                                        .reduce((sum, inv) => sum + inv.totalAmount, 0)
+                                        .toFixed(2)}
+                                </p>
+                            </div>
+                            <div className="text-3xl text-amber-500">⏳</div>
+                        </div>
+                    </div>
+
+                    <div className="glass-card rounded-xl p-6 border-l-4 border-green-500">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-sm font-medium text-muted-foreground">Paid (This Month)</p>
+                                <p className="text-2xl font-bold text-green-600">
+                                    ₹{invoices
+                                        .filter(inv => inv.status === "PAID")
+                                        .reduce((sum, inv) => sum + inv.totalAmount, 0)
+                                        .toFixed(2)}
+                                </p>
+                            </div>
+                            <div className="text-3xl text-green-500">✓</div>
+                        </div>
+                    </div>
+
+                    <div className="glass-card rounded-xl p-6 border-l-4 border-blue-500">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-sm font-medium text-muted-foreground">Total Invoices</p>
+                                <p className="text-2xl font-bold text-blue-600">{invoices.length}</p>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                    {invoices.filter(inv => inv.status === "UNPAID").length} pending
+                                </p>
+                            </div>
+                            <div className="text-3xl text-blue-500">📄</div>
+                        </div>
+                    </div>
                 </div>
 
                 {isLoading ? (

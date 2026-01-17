@@ -168,6 +168,99 @@ ownerRouter.get("/dashboard-summary", async (_req, res) => {
   });
 });
 
+// ANALYTICS - Monthly Revenue (last 6 months)
+ownerRouter.get("/analytics/monthly-revenue", async (_req, res) => {
+  const now = new Date();
+  const sixMonthsAgo = new Date();
+  sixMonthsAgo.setMonth(now.getMonth() - 6);
+
+  const orders = await prisma.distributorOrder.findMany({
+    where: {
+      createdAt: {
+        gte: sixMonthsAgo,
+      },
+    },
+    select: {
+      totalAmount: true,
+      createdAt: true,
+    },
+  });
+
+  // Group by month
+  const monthlyData: { [key: string]: number } = {};
+  orders.forEach((order) => {
+    const monthKey = new Date(order.createdAt).toLocaleDateString('en-US', { month: 'short' });
+    if (!monthlyData[monthKey]) {
+      monthlyData[monthKey] = 0;
+    }
+    monthlyData[monthKey] += order.totalAmount;
+  });
+
+  // Convert to array format for charts
+  const result = Object.entries(monthlyData).map(([name, revenue]) => ({
+    name,
+    revenue: Math.round(revenue),
+  }));
+
+  res.json(result);
+});
+
+// ANALYTICS - Product Distribution
+ownerRouter.get("/analytics/product-distribution", async (_req, res) => {
+  const products = await prisma.product.findMany({
+    include: {
+      orderItems: true,
+    },
+  });
+
+  const productData = products.map((product) => {
+    const totalQuantity = product.orderItems.reduce((sum, item) => sum + item.quantity, 0);
+    return {
+      name: product.name,
+      value: totalQuantity,
+    };
+  }).filter(p => p.value > 0); // Only include products with orders
+
+  res.json(productData);
+});
+
+// ANALYTICS - Milk Collection Trends (last 6 months)
+ownerRouter.get("/analytics/milk-trends", async (_req, res) => {
+  const now = new Date();
+  const sixMonthsAgo = new Date();
+  sixMonthsAgo.setMonth(now.getMonth() - 6);
+
+  const milkEntries = await prisma.milkEntry.findMany({
+    where: {
+      date: {
+        gte: sixMonthsAgo,
+      },
+    },
+    select: {
+      date: true,
+      quantityLitre: true,
+    },
+  });
+
+  // Group by month
+  const monthlyData: { [key: string]: number } = {};
+  milkEntries.forEach((entry) => {
+    const monthKey = new Date(entry.date).toLocaleDateString('en-US', { month: 'short' });
+    if (!monthlyData[monthKey]) {
+      monthlyData[monthKey] = 0;
+    }
+    monthlyData[monthKey] += entry.quantityLitre;
+  });
+
+  // Convert to array format for charts
+  const result = Object.entries(monthlyData).map(([name, litres]) => ({
+    name,
+    litres: Math.round(litres),
+  }));
+
+  res.json(result);
+});
+
 // SAMITI INVOICES
 ownerRouter.get("/samiti-invoices", async (req, res) => {
   const { status, samitiId } = req.query as { status?: string; samitiId?: string };
